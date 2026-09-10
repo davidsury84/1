@@ -1,0 +1,29 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap");
+
+:root{
+  --paper:#F7F6F2; --surface:#FFFFFF; --ink:#1B2A24; --muted:#63706A; --line:#D9DBD3;
+  --accent:#1E7F5C; --accent-ink:#FFFFFF; --accent-soft:#E3F1EA;
+  --shadow:0 1px 2px rgba(27,42,36,.06),0 8px 24px rgba(27,42,36,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#131A17; --surface:#1C2521; --ink:#E9ECE7; --muted:#9AA69F; --line:#2F3B35;
+    --accent:#4FBF8F; --accent-ink:#0F1F18; --accent-soft:#1F3A2F;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+*{box-sizing:border-box}
+html{color-scheme:light dark}
+body{
+  margin:0;
+  background:var(--paper);
+  color:var(--ink);
+  font-family:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:17px;
+  line-height:1.5;
+  padding-inline:16px;
+  padding-block:0 48px;
+}
+h1,h2,h3{font-family:"Fraunces","Iowan Old Style",Georgia,serif;font-weight:600;letter-spacing:-.01em;text-wrap:balance}
+a{color:var(--accent)}
+button{font:inherit;cursor:pointer}

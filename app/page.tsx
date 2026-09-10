@@ -1,6 +1,7 @@
 "use client";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 const questions = [
   "Souhlasíte s tím, aby se zateplily domy kvůli nižší spotřebě energie?",
@@ -25,7 +26,7 @@ export default function Home() {
   const [answers, setAnswers] = useState(Array(questions.length).fill(null));
   const router = useRouter();
 
-  const handleAnswer = (index, value) => {
+  const handleAnswer = (index: number, value: string) => {
     const updated = [...answers];
     updated[index] = value;
     setAnswers(updated);
@@ -43,6 +44,9 @@ export default function Home() {
 
   return (
     <div className="max-w-3xl mx-auto p-4 space-y-6">
+      <p style={{ textAlign: "center" }}>
+        <Link href="/pruzkumy">← Všechny průzkumy</Link>
+      </p>
       <h1 className="text-2xl font-bold text-center">Green Deal: Souhlasíte?</h1>
       {questions.map((question, index) => (
         <div key={index} className="border rounded p-4">

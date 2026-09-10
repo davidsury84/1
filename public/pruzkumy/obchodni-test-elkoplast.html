@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Obchodní situační test ELKOPLAST</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Source+Sans+3:wght@400;600;700&display=swap">
+<style>
+:root{
+  --paper:#F7F6F2; --surface:#FFFFFF; --ink:#1B2A24; --muted:#63706A; --line:#D9DBD3;
+  --accent:#1E7F5C; --accent-ink:#FFFFFF; --accent-soft:#E3F1EA;
+  --warn:#C8792A; --warn-soft:#F8EBDD; --bad:#B8433A; --bad-soft:#F6E3E1; --good:#1E7F5C;
+  --shadow:0 1px 2px rgba(27,42,36,.06),0 8px 24px rgba(27,42,36,.08);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#131A17; --surface:#1C2521; --ink:#E9ECE7; --muted:#9AA69F; --line:#2F3B35;
+    --accent:#4FBF8F; --accent-ink:#0F1F18; --accent-soft:#1F3A2F;
+    --warn:#E39A4F; --warn-soft:#3A2A18; --bad:#E06B62; --bad-soft:#3D2220; --good:#4FBF8F;
+    --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#131A17; --surface:#1C2521; --ink:#E9ECE7; --muted:#9AA69F; --line:#2F3B35;
+  --accent:#4FBF8F; --accent-ink:#0F1F18; --accent-soft:#1F3A2F;
+  --warn:#E39A4F; --warn-soft:#3A2A18; --bad:#E06B62; --bad-soft:#3D2220; --good:#4FBF8F;
+  --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.35);
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Source Sans 3",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:17px;line-height:1.5;padding-inline:16px;padding-block:0 48px}
+h1,h2,h3{font-family:"Fraunces","Iowan Old Style",Georgia,serif;font-weight:600;letter-spacing:-.01em;text-wrap:balance;margin:0}
+h1{font-size:2rem;line-height:1.15}
+h2{font-size:1.45rem;line-height:1.2}
+h3{font-size:1.1rem}
+p{margin:0}
+.wrap{max-width:720px;margin:0 auto}
+.topbar{position:sticky;top:0;z-index:5;background:var(--paper);border-bottom:1px solid var(--line);margin-inline:-16px;padding:10px 16px}
+.topbar .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.brand{font-family:"Fraunces",Georgia,serif;font-weight:600;font-size:1.05rem}
+.brand small{display:block;font-family:"Source Sans 3",sans-serif;font-weight:400;font-size:.8rem;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.timer{font-variant-numeric:tabular-nums;font-weight:700;font-size:1.5rem;padding:4px 12px;border-radius:6px;background:var(--accent-soft);color:var(--accent);min-width:96px;text-align:center}
+.timer.warn{background:var(--warn-soft);color:var(--warn)}
+.timer.bad{background:var(--bad-soft);color:var(--bad)}
+.progress{height:4px;background:var(--line);border-radius:2px;overflow:hidden;margin-top:10px}
+.progress i{display:block;height:100%;background:var(--accent);width:0;transition:width .3s}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:28px;box-shadow:var(--shadow);margin-top:24px}
+.eyebrow{text-transform:uppercase;letter-spacing:.08em;font-size:.78rem;font-weight:700;color:var(--muted)}
+.lead{font-size:1.1rem;color:var(--muted);margin-top:8px;max-width:62ch}
+.stack{display:grid;gap:16px}
+.field label{display:block;font-weight:600;font-size:.92rem;margin-bottom:4px}
+input[type=text],input[type=password]{width:100%;font:inherit;padding:10px 12px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink)}
+input:focus,button:focus-visible,.opt:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+button{font:inherit;font-weight:600;border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:10px 18px;border-radius:6px;cursor:pointer}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+button.ghost{background:transparent}
+button:disabled{opacity:.45;cursor:not-allowed}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.row.between{justify-content:space-between}
+.scenario{font-size:1.05rem;margin-top:12px;max-width:65ch}
+.scenario b{font-weight:700}
+.opts{display:grid;gap:10px;margin-top:20px}
+.opt{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:start;padding:12px 14px;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+.opt .l{font-weight:700;color:var(--muted);font-variant-numeric:tabular-nums}
+.opt .t{max-width:60ch}
+.pick{display:flex;gap:6px;flex-direction:column}
+.pick label{display:flex;align-items:center;gap:6px;font-size:.82rem;font-weight:600;white-space:nowrap;cursor:pointer;color:var(--muted)}
+.pick input{accent-color:var(--accent);margin:0}
+.opt.best{border-color:var(--accent);background:var(--accent-soft)}
+.opt.worst{border-color:var(--bad);background:var(--bad-soft)}
+.opt.best.worst{border-color:var(--warn);background:var(--warn-soft)}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:14px;font-size:.88rem;color:var(--muted)}
+.legend span::before{content:"";display:inline-block;width:12px;height:12px;border-radius:3px;margin-right:6px;vertical-align:-1px}
+.legend .b::before{background:var(--accent)}
+.legend .w::before{background:var(--bad)}
+.nav{margin-top:24px;display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.note{font-size:.9rem;color:var(--muted)}
+.dots{display:flex;gap:6px;flex-wrap:wrap}
+.dots i{width:22px;height:22px;border-radius:50%;border:1px solid var(--line);display:inline-grid;place-items:center;font-size:.72rem;font-weight:700;font-style:normal;color:var(--muted);cursor:pointer}
+.dots i.done{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.dots i.cur{outline:2px solid var(--accent);outline-offset:1px}
+table{border-collapse:collapse;width:100%;font-size:.95rem}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted)}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+.tablewrap{overflow-x:auto}
+.score{display:grid;grid-template-columns:auto 1fr;gap:20px;align-items:center}
+.score .big{font-family:"Fraunces",Georgia,serif;font-size:3.2rem;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.band{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:700;font-size:.85rem}
+.band.A{background:var(--accent-soft);color:var(--accent)}
+.band.B{background:var(--accent-soft);color:var(--accent)}
+.band.C{background:var(--warn-soft);color:var(--warn)}
+.band.D{background:var(--bad-soft);color:var(--bad)}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;min-width:120px}
+.bar i{display:block;height:100%;background:var(--accent)}
+.dim{display:grid;grid-template-columns:1fr auto;gap:6px 14px;align-items:center}
+.dim .bar{grid-column:1/-1}
+.key-item{padding:16px 0;border-bottom:1px solid var(--line)}
+.key-item .why{font-size:.93rem;color:var(--muted);margin-top:6px;max-width:65ch}
+.tag{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 7px;border-radius:4px;margin-right:6px}
+.tag.b{background:var(--accent-soft);color:var(--accent)}
+.tag.w{background:var(--bad-soft);color:var(--bad)}
+.tag.p{background:var(--warn-soft);color:var(--warn)}
+.tag.my{background:var(--line);color:var(--ink)}
+.small{font-size:.85rem;color:var(--muted)}
+hr{border:0;border-top:1px solid var(--line);margin:22px 0}
+.meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.meta div{padding:10px 12px;border:1px solid var(--line);border-radius:8px;background:var(--paper)}
+.meta b{display:block;font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:700}
+textarea{width:100%;font:inherit;font-size:.85rem;padding:10px;border:1px solid var(--line);border-radius:6px;background:var(--paper);color:var(--ink);min-height:110px}
+@media (max-width:520px){.opt{grid-template-columns:24px 1fr}.pick{grid-column:1/-1;flex-direction:row;gap:16px}.card{padding:20px}h1{font-size:1.6rem}}
+@media (prefers-reduced-motion: reduce){.progress i{transition:none}}
+@media print{.topbar,.nav,button{display:none!important}.card{box-shadow:none}}
+</style>
+</head>
+<body>
+
+
+<div class="topbar"><div class="wrap">
+  <div class="brand">ELKOPLAST CZ<small>Obchodní situační test · B2B</small></div>
+  <div class="row"><div id="dots" class="dots" hidden></div><div id="timer" class="timer" hidden>10:00</div></div>
+</div><div class="wrap"><div class="progress" id="progress" hidden><i></i></div></div></div>
+
+<main class="wrap">
+
+<!-- INTRO -->
+<section id="intro" class="card">
+  <p class="eyebrow">Situační test obchodních dovedností · 10 minut · 10 situací</p>
+  <h1 style="margin-top:8px">Jak byste postupoval(a) v obchodní situaci?</h1>
+  <p class="lead">Test měří, jak rozumíte prodeji technologií pro odpadové hospodářství obcím, svozovým společnostem a průmyslu: zjišťování potřeb, argumentaci hodnotou, práci s námitkami, uzavírání a budování důvěry.</p>
+  <hr>
+  <div class="stack">
+    <div>
+      <h3>Jak test funguje</h3>
+      <p class="scenario">U každé situace vidíte čtyři možné reakce. Označte, která je podle Vás <b>nejúčinnější</b> a která <b>nejméně účinná</b>. Neexistuje jediná „správná“ odpověď – hodnotí se Váš obchodní úsudek. Odpovídejte tak, jak byste skutečně jednal(a), ne jak si myslíte, že se to od Vás očekává.</p>
+    </div>
+    <div>
+      <h3>Časový limit</h3>
+      <p class="scenario">Na test máte <b>10 minut</b>, tj. zhruba minutu na situaci. Po vypršení času se test automaticky odevzdá s tím, co jste stihl(a) vyplnit. Mezi situacemi se můžete vracet.</p>
+    </div>
+    <div class="row between">
+      <button class="primary" id="startBtn">Spustit test</button>
+      <button class="ghost" id="keyBtn">Pro hodnotitele</button>
+    </div>
+    <p class="small"><a href="/pruzkumy" style="color:var(--accent)">← Zpět na přehled průzkumů</a></p>
+  </div>
+</section>
+
+<!-- TEST -->
+<section id="test" hidden></section>
+
+<!-- DONE (candidate view) -->
+<section id="done" class="card" hidden>
+  <p class="eyebrow">Test odevzdán</p>
+  <h2 style="margin-top:8px">Děkujeme, Vaše odpovědi jsou uloženy.</h2>
+  <p class="lead">Vyhodnocení provede hodnotitel. Předejte mu prosím tento kód – nebo mu nechte zařízení, vyhodnocení otevře sám.</p>
+  <div class="field" style="margin-top:18px"><label for="code">Kód výsledku</label><input id="code" type="text" readonly></div>
+  <div class="row" style="margin-top:14px"><button id="copyCode">Kopírovat kód</button><button class="ghost" id="evalBtn">Vyhodnocení (hodnotitel)</button></div>
+</section>
+
+<!-- EVALUATOR -->
+<section id="eval" hidden></section>
+
+</main>
+
+<script>
+/* ---------- DATA ---------- */
+const PIN = "2664";
+const DIMS = {
+  potreby:"Zjišťování potřeb",
+  hodnota:"Argumentace hodnotou",
+  namitky:"Námitky a uzavírání",
+  duvera:"Důvěra a vztah",
+  rizeni:"Řízení obchodu"
+};
+/* best: index nejúčinnější (3 b.), ok: přijatelná (1 b.); worst: index nejméně účinné (2 b.), pworst: částečně (1 b.) */
+const ITEMS = [
+ {dim:"potreby", title:"První schůzka na obecním úřadě",
+  s:"Starosta obce se 3 200 obyvateli Vám na první schůzce říká: <b>„Potřebujeme nabídku na kontejnery na tříděný odpad, pošlete nám ceník.“</b> Jak zareagujete?",
+  o:["Poděkuji, ještě týž den pošlu kompletní katalog s ceníkem a nechám obec vybrat.",
+     "Zeptám se, jak dnes funguje svoz (kdo sváží, kolik je stanovišť, jak často), s čím mají problém – přeplněnost, vzhled, nepořádek – a jakých výsledků třídění chtějí dosáhnout. Až podle toho navrhnu řešení.",
+     "Rovnou doporučím polopodzemní kontejnery, protože jsou aktuální trend a nejvíc se na nich vydělá.",
+     "Zeptám se na výši rozpočtu a podle ní navrhnu odpovídající typ kontejnerů."],
+  best:1, ok:3, worst:0, pworst:2,
+  why:"Standard konzultativního prodeje (SPIN): nejdřív situace a problém, teprve pak řešení. Poslat ceník bez zjištění potřeb (A) přenechává výběr zákazníkovi a redukuje nás na cenu. Rozpočet (D) je legitimní otázka, ale sama o sobě nevede k dobrému návrhu. Tlačit trendový produkt bez diagnózy (C) je prodej „od výrobku“, ne od potřeby."},
+ {dim:"hodnota", title:"„Jste o 15 % dražší“",
+  s:"Výrobní podnik poptává lisovací kontejner na papír a fólie. Nákupčí Vám ukáže konkurenční nabídku a řekne: <b>„Jste o 15 % dražší, tak proč bychom měli brát vás?“</b>",
+  o:["Nabídnu okamžitou slevu 15 %, abychom se srovnali s konkurencí.",
+     "Vrátím se k jejich provozu: kolik odvozů dnes platí, jaký objem a četnost svozu lis změní, kolik stojí servis a jaká je životnost. Spočítám celkové roční náklady obou variant a ukážu, kde je rozdíl.",
+     "Vysvětlím, že konkurence má známé problémy s kvalitou a servisem, a proto je levnější.",
+     "Nabídnu prodlouženou záruku a servis v prvním roce zdarma, aniž bych řešil srovnání nákladů."],
+  best:1, ok:3, worst:2, pworst:0,
+  why:"Hodnotová argumentace: cena investice je jen část celkových nákladů (TCO). Kdo umí přepočítat úsporu na svozech, nemusí slevovat. Pomlouvání konkurence (C) poškozuje důvěru nejvíc – nákupčí si to ověří. Okamžitá sleva (A) učí zákazníka, že cena je vyjednávatelná bez protihodnoty. Bonus bez propočtu (D) je přijatelný, ale nevyužívá hlavní argument."},
+ {dim:"namitky", title:"„Do příštího roku nemáme rozpočet“",
+  s:"Po dobré prezentaci Vám místostarosta řekne: <b>„Líbí se nám to, ale letos už na to rozpočet nemáme. Vraťte se příští rok.“</b>",
+  o:["Poděkuji a poznamenám si, že se ozvu příští rok v lednu.",
+     "Zeptám se, kdy se sestavuje rozpočet a jaké podklady zastupitelstvo potřebuje. Nabídnu, že je připravím, a zmíním možnosti dotace (OPŽP) nebo pronájmu či splátek. Domluvím konkrétní termín dalšího kroku.",
+     "Zdůrazním, že cena platí jen do konce měsíce, a zkusím je přesvědčit k objednávce teď.",
+     "Pošlu nabídku s platností 12 měsíců a nechám na nich, kdy se ozvou."],
+  best:1, ok:3, worst:2, pworst:0,
+  why:"Námitka „rozpočet“ je často námitka na načasování, ne na produkt. Nejúčinnější je posunout obchod do rozpočtového procesu a nabídnout financování. Časový tlak (C) v komunální sféře nefunguje a poškozuje vztah. Pasivní čekání (A) obvykle znamená, že zakázku mezitím získá někdo jiný."},
+ {dim:"namitky", title:"„Pošlete to, ozveme se“",
+  s:"Ředitel svozové společnosti si prohlédl návrh třídicí technologie a uzavírá schůzku slovy: <b>„Vypadá to dobře, pošlete mi to a my se ozveme.“</b>",
+  o:["Nabídku pošlu a počkám, až se ozvou – nechci působit dotěrně.",
+     "Zeptám se, co přesně budou posuzovat, kdo další se bude rozhodovat a co by muselo platit, aby řekli ano. Navrhnu konkrétní další krok – referenční návštěvu nebo schůzku nad technickým zadáním – a domluvím termín.",
+     "Nabídnu 5% slevu, pokud podepíší do konce týdne.",
+     "Zeptám se, jestli je v pořádku, když zavolám za tři týdny."],
+  best:1, ok:3, worst:2, pworst:0,
+  why:"Uzavírání v B2B znamená zajistit další konkrétní krok a poznat rozhodovací proces (kdo, kdy, podle čeho). Sleva za rychlý podpis (C) u investice v milionech působí nevěrohodně a signalizuje, že cena byla nafouknutá. Domluvit termín hovoru (D) je lepší než nic, ale nezjistí, co se vlastně rozhoduje."},
+ {dim:"duvera", title:"Parametr, který nesplňujeme",
+  s:"Zákazník trvá v technické specifikaci na parametru (např. konkrétní nosnost nebo certifikace), který náš standardní produkt <b>nesplňuje</b>. Zakázka je pro Vás důležitá.",
+  o:["Uvedu, že parametr splňujeme – detaily se doladí až při realizaci.",
+     "Otevřeně řeknu, že náš standard tento parametr nesplňuje, a nabídnu úpravu, jiný model, nebo doporučím jiné řešení.",
+     "Parametr v nabídce nezmíním a pošlu standardní nabídku – třeba si toho nevšimnou.",
+     "Zeptám se, k čemu parametr potřebují a jaký cíl za ním stojí. Otevřeně řeknu, co nesplňujeme, a navrhnu, jak cíle dosáhnout jinak."],
+  best:3, ok:1, worst:0, pworst:2,
+  why:"Důvěryhodnost je v dlouhodobých B2B vztazích hlavní aktivum. Nejlepší je kombinace otevřenosti a zjištění skutečné potřeby (D) – parametr bývá prostředkem, ne cílem. Poctivé přiznání (B) je plně přijatelné. Lhaní (A) a zamlčení (C) vedou k reklamacím, ztrátě zákazníka a ohrožují pověst firmy."},
+ {dim:"rizeni", title:"Pondělí ráno – čím začít",
+  s:"V pondělí ráno máte čtyři věci: <b>(1)</b> dokončit nabídku pro průmyslový podnik za 2 mil. Kč, který se rozhoduje tento týden; <b>(2)</b> novou poptávku z webu na dvě popelnice; <b>(3)</b> stížnost stálého zákazníka (svozová firma, roční obrat 4 mil. Kč) na zpožděnou dodávku kontejnerů; <b>(4)</b> zavolat kontaktu z veletrhu. Čím začnete?",
+  o:["Nabídkou za 2 mil. Kč – je to největší obchod a rozhodnutí je tento týden.",
+     "Krátce zavolám stálému zákazníkovi, zjistím stav a domluvím, kdy dostane informaci od výroby. Potom se pustím do nabídky za 2 mil. Kč.",
+     "Poptávkou z webu – vyřídím ji za pět minut a mám ji z hlavy.",
+     "Kontaktem z veletrhu – dokud si nás pamatuje."],
+  best:1, ok:0, worst:2, pworst:3,
+  why:"Řízení priorit: stálý zákazník s 4 mil. Kč ročně a otevřenou stížností je největší riziko – stačí krátký hovor, který ho ujistí. Pak přichází nabídka s uzávěrkou (A je proto přijatelná volba). Drobná poptávka (C) je nejméně naléhavá a její „vyřízení pro pocit“ je typická chyba v řízení času."},
+ {dim:"rizeni", title:"Starosta chce, technické služby ne",
+  s:"Starosta má o naše polopodzemní kontejnery zájem. Ředitel technických služeb, které budou stanoviště obsluhovat, je ale <b>skeptický kvůli údržbě a technice svozu</b>. Starosta Vám řekne, že rozhoduje on.",
+  o:["Soustředím se na starostu – rozhoduje on, technické služby to budou muset přijmout.",
+     "Požádám o schůzku s ředitelem technických služeb, vyslechnu jeho obavy k údržbě a svozu a nabídnu mu referenční návštěvu v obci, kde naše kontejnery obsluhují.",
+     "Pošlu starostovi argumenty k údržbě, ať je technickým službám vysvětlí sám.",
+     "Nabídnu technickým službám slevu na servisní smlouvu, aby změnily názor."],
+  best:1, ok:2, worst:0, pworst:3,
+  why:"Ve veřejném sektoru rozhoduje formálně starosta, ale provozovatel může projekt zablokovat, sabotovat nebo znehodnotit reference. Skeptika je třeba zapojit a přesvědčit fakty (reference, provoz). Ignorovat ho (A) je nejrizikovější. Sleva (D) neřeší jeho věcné obavy a působí jako úplatek. Delegovat argumentaci na starostu (C) je slabé, ale nešpatné."},
+ {dim:"potreby", title:"Rutinní objednávka od svozové firmy",
+  s:"Stálý zákazník – svozová společnost – volá: <b>„Objednáváme 50 kontejnerů 1 100 l jako vždy.“</b>",
+  o:["Objednávku potvrdím a předám k vyřízení – zákazník ví, co chce.",
+     "Zeptám se, kam kontejnery míří a pro jaký svoz. Podle toho zmíním, co by jim mohlo pomoci – čipová identifikace, označení, stojany nebo jiná verze – a vysvětlím přínos.",
+     "Nabídnu 100 kusů s množstevní slevou.",
+     "Doporučím dražší typ kontejneru s vyšší marží."],
+  best:1, ok:0, worst:3, pworst:2,
+  why:"Rozvoj zákazníka: i rutinní objednávka je příležitost zjistit, co se u zákazníka děje, a nabídnout skutečně užitečné doplňky. Prosté vyřízení (A) je v pořádku, ale nepřidává hodnotu. Nabízet dražší produkt kvůli marži bez důvodu (D) zákazník pozná a důvěra klesá. Tlačit větší objem (C) bez potřeby je jen o něco lepší."},
+ {dim:"duvera", title:"Prohrané výběrové řízení",
+  s:"Město, se kterým jste půl roku jednal(a), vybralo ve výběrovém řízení konkurenci. <b>Cenově jste byli o 4 % výš.</b>",
+  o:["Poděkuji za spolupráci, požádám o zpětnou vazbu k nabídce, poblahopřeji k výběru a nabídnu, že zůstáváme k dispozici pro servis a další etapy.",
+     "Napíšu vedení města, že vybraný dodavatel je horší a že toho budou litovat.",
+     "Neudělám nic – rozhodli, nemá cenu se dál angažovat.",
+     "Prověřím zadávací dokumentaci a zvážím námitky proti výsledku, i když důvod nemám."],
+  best:0, ok:2, worst:1, pworst:3,
+  why:"Prohra je začátek příštího obchodu: v komunální sféře se zakázky opakují a lidé se potkávají. Profesionální reakce a zpětná vazba (A) udržují dveře otevřené. Shazování vítěze (B) firmu v regionu diskvalifikuje. Bezdůvodné námitky (D) zdržují město a kazí vztah. Pasivita (C) je neutrální, ale promarněná příležitost."},
+ {dim:"hodnota", title:"Studený telefonát: „Nemám čas“",
+  s:"Voláte poprvé řediteli výrobního podniku. Po představení Vás přeruší: <b>„Nemám čas, takových jako vy mi volá deset denně.“</b>",
+  o:["Omluvím se, poděkuji a zavěsím.",
+     "Do 20 sekund řeknu konkrétní důvod hovoru – např. že podobnému podniku v regionu jsme snížili náklady na svoz o třetinu – a požádám o 15 minut v konkrétním termínu.",
+     "Pokračuji v připravené prezentaci – když ho zaujmu, čas si udělá.",
+     "Zeptám se, kdy by se hodilo zavolat znovu, a pošlu mu e-mail s informacemi."],
+  best:1, ok:3, worst:2, pworst:0,
+  why:"Prospecting: námitka „nemám čas“ je automatická reakce, ne rozhodnutí. Účinná je stručná, konkrétní hodnota (reference, číslo) a jasná malá žádost. Ignorovat odmítnutí a pokračovat v monologu (C) je nejhorší – pálí kontakt. Domluvit jiný termín (D) je přijatelné; okamžité vzdání (A) znamená, že hovor neměl smysl."}
+];
+const TIME = 600; // s
+
+/* ---------- STATE ---------- */
+let state = {name:"",pos:"",cur:0,best:Array(ITEMS.length).fill(null),worst:Array(ITEMS.length).fill(null),started:0,ended:0,left:TIME,timerId:null};
+const $ = s => document.querySelector(s);
+const L = "ABCD";
+
+/* ---------- TEST FLOW ---------- */
+$("#startBtn").onclick = () => {
+  state.name = ""; state.pos = "";
+  $("#intro").hidden = true; $("#test").hidden = false; $("#timer").hidden=false; $("#dots").hidden=false; $("#progress").hidden=false;
+  state.started = Date.now();
+  state.timerId = setInterval(tick, 1000);
+  renderItem(); window.scrollTo(0,0);
+};
+function tick(){
+  state.left = Math.max(0, TIME - Math.round((Date.now()-state.started)/1000));
+  const m = String(Math.floor(state.left/60)).padStart(2,"0"), s = String(state.left%60).padStart(2,"0");
+  const t = $("#timer"); t.textContent = m+":"+s;
+  t.classList.toggle("warn", state.left<=120 && state.left>30); t.classList.toggle("bad", state.left<=30);
+  if(state.left<=0) finish(true);
+}
+function answered(i){ return state.best[i]!==null && state.worst[i]!==null; }
+function renderItem(){
+  const i = state.cur, it = ITEMS[i];
+  $("#progress i").style.width = (100*state.best.filter((b,k)=>answered(k)).length/ITEMS.length)+"%";
+  $("#dots").innerHTML = ITEMS.map((_,k)=>`<i class="${answered(k)?'done':''} ${k===i?'cur':''}" data-k="${k}" title="Situace ${k+1}">${k+1}</i>`).join("");
+  $("#dots").querySelectorAll("i").forEach(d=>d.onclick=()=>{state.cur=+d.dataset.k;renderItem();});
+  $("#test").innerHTML = `
+  <div class="card">
+    <p class="eyebrow">Situace ${i+1} z ${ITEMS.length} · ${DIMS[it.dim]}</p>
+    <h2 style="margin-top:6px">${it.title}</h2>
+    <p class="scenario">${it.s}</p>
+    <div class="legend"><span class="b">Nejúčinnější reakce</span><span class="w">Nejméně účinná reakce</span></div>
+    <div class="opts">${it.o.map((t,k)=>`
+      <div class="opt ${state.best[i]===k?'best':''} ${state.worst[i]===k?'worst':''}">
+        <span class="l">${L[k]}</span><span class="t">${t}</span>
+        <span class="pick">
+          <label><input type="radio" name="b${i}" id="b${i}${k}" value="${k}" ${state.best[i]===k?'checked':''}>Nejúčinnější</label>
+          <label><input type="radio" name="w${i}" id="w${i}${k}" value="${k}" ${state.worst[i]===k?'checked':''}>Nejméně účinná</label>
+        </span>
+      </div>`).join("")}</div>
+    <p class="note" id="warn" style="margin-top:10px"></p>
+    <div class="nav">
+      <button class="ghost" id="prev" ${i===0?'disabled':''}>← Zpět</button>
+      ${i<ITEMS.length-1 ? `<button class="primary" id="next">Další situace →</button>` : `<button class="primary" id="fin">Odevzdat test</button>`}
+    </div>
+  </div>`;
+  $("#test").querySelectorAll("input[type=radio]").forEach(r=>r.onchange=()=>{
+    const k=+r.value;
+    if(r.name[0]==="b"){ state.best[i]=k; if(state.worst[i]===k) state.worst[i]=null; }
+    else { state.worst[i]=k; if(state.best[i]===k) state.best[i]=null; }
+    renderItem();
+  });
+  if(state.best[i]!==null && state.worst[i]===null) $("#warn").textContent="Označte ještě nejméně účinnou reakci.";
+  if(state.best[i]===null && state.worst[i]!==null) $("#warn").textContent="Označte ještě nejúčinnější reakci.";
+  const prev=$("#prev"); if(prev) prev.onclick=()=>{state.cur--;renderItem();window.scrollTo(0,0);};
+  const next=$("#next"); if(next) next.onclick=()=>{state.cur++;renderItem();window.scrollTo(0,0);};
+  const fin=$("#fin"); if(fin) fin.onclick=()=>{
+    const missing = ITEMS.map((_,k)=>k).filter(k=>!answered(k));
+    if(missing.length && !confirm(`Nevyplněné situace: ${missing.map(k=>k+1).join(", ")}. Opravdu odevzdat?`)) return;
+    finish(false);
+  };
+}
+function finish(timeout){
+  clearInterval(state.timerId); state.ended = Date.now();
+  $("#test").hidden=true; $("#timer").hidden=true; $("#dots").hidden=true; $("#progress").hidden=true;
+  const r = evaluate(state); r.timeout = timeout;
+  saveResult(r);
+  $("#done").hidden=false; $("#code").value = r.code;
+  window.scrollTo(0,0);
+}
+$("#copyCode").onclick = async()=>{ try{ await navigator.clipboard.writeText($("#code").value); $("#copyCode").textContent="Zkopírováno"; }catch(e){ $("#code").select(); } };
+
+/* ---------- SCORING ---------- */
+function scoreItem(it,b,w){
+  let sb=0, sw=0;
+  if(b===it.best) sb=3; else if(b===it.ok) sb=1;
+  if(w===it.worst) sw=2; else if(w===it.pworst) sw=1;
+  return {sb,sw,total:sb+sw};
+}
+function band(total){
+  if(total>=40) return {k:"A",t:"Vysoce nadprůměrný obchodní úsudek",d:"Kandidát systematicky volí konzultativní postup a vyhýbá se rizikovým reakcím. Doporučeno pokračovat do dalšího kola – ověřte praxí (hraní rolí, reference)."};
+  if(total>=32) return {k:"B",t:"Nadprůměrný obchodní úsudek",d:"Solidní základ pro B2B prodej. Zaměřte pohovor na dimenze s nižším skóre."};
+  if(total>=24) return {k:"C",t:"Průměrný obchodní úsudek",d:"Kandidát rozpozná zjevné chyby, ale nevyužívá příležitosti. Vhodný pro juniorní pozici se zaškolením; ověřte motivaci a učenlivost."};
+  return {k:"D",t:"Podprůměrný obchodní úsudek",d:"Kandidát opakovaně volí reakce, které poškozují obchod nebo vztah. Pro samostatnou obchodní pozici nedoporučeno bez dalšího ověření."};
+}
+function evaluate(st){
+  const per = ITEMS.map((it,i)=>({i, ...scoreItem(it,st.best[i],st.worst[i]), b:st.best[i], w:st.worst[i]}));
+  const total = per.reduce((a,p)=>a+p.total,0);
+  const dims = {};
+  for(const k in DIMS){ dims[k]={got:0,max:0}; }
+  per.forEach((p,i)=>{ const d=ITEMS[i].dim; dims[d].got+=p.total; dims[d].max+=5; });
+  const secs = Math.round((st.ended-st.started)/1000);
+  const enc = st.best.map((b,i)=>(b===null?"-":L[b])+(st.worst[i]===null?"-":L[st.worst[i]])).join("");
+  const code = `EP1-${enc}-${secs}`;
+  return {name:st.name,pos:st.pos,per,total,dims,secs,code,band:band(total),when:new Date(st.ended).toISOString()};
+}
+function decode(code){
+  const m = code.trim().match(/^EP1-([A-D\-]{20})-(\d+)/);
+  if(!m) return null;
+  const st = {best:[],worst:[],started:0,ended:+m[2]*1000,name:"",pos:""};
+  for(let i=0;i<10;i++){ const b=m[1][2*i], w=m[1][2*i+1]; st.best.push(b==="-"?null:L.indexOf(b)); st.worst.push(w==="-"?null:L.indexOf(w)); }
+  return evaluate(st);
+}
+function saveResult(r){ try{ const a=JSON.parse(localStorage.getItem("ep-results")||"[]"); a.unshift(r); localStorage.setItem("ep-results",JSON.stringify(a.slice(0,200))); }catch(e){} }
+function loadResults(){ try{ return JSON.parse(localStorage.getItem("ep-results")||"[]"); }catch(e){ return []; } }
+
+/* ---------- EVALUATOR ---------- */
+function askPin(){ const p = prompt("Zadejte PIN hodnotitele:"); return p===PIN; }
+$("#keyBtn").onclick = ()=>{ if(!askPin()) return; $("#intro").hidden=true; renderEval(null); };
+$("#evalBtn").onclick = ()=>{ if(!askPin()) return; $("#done").hidden=true; renderEval(decode($("#code").value)); };
+
+function fmt(s){ return Math.floor(s/60)+" min "+String(s%60).padStart(2,"0")+" s"; }
+function renderEval(r){
+  const ev = $("#eval"); ev.hidden=false;
+  const results = loadResults();
+  ev.innerHTML = `
+  <div class="card">
+    <p class="eyebrow">Režim hodnotitele</p>
+    <h2 style="margin-top:6px">Vyhodnocení a klíč</h2>
+    <div class="row" style="margin-top:14px">
+      <input type="text" id="codeIn" placeholder="Vložte kód výsledku (EP1-…)" style="flex:1;min-width:220px">
+      <button class="primary" id="decodeBtn">Vyhodnotit kód</button>
+      <button class="ghost" id="backBtn">Zpět na začátek</button>
+    </div>
+    ${results.length?`<p class="small" style="margin-top:10px">Výsledky uložené v tomto prohlížeči: ${results.map((x,i)=>`<a href="#" data-i="${i}" class="reslink">${new Date(x.when).toLocaleString("cs-CZ")} (${x.total}/50)</a>`).join(" · ")}</p>`:""}
+  </div>
+  <div id="report"></div>
+  <div class="card">
+    <p class="eyebrow">Metodika a klíč</p>
+    <h3 style="margin-top:6px">Jak test vznikl a jak se boduje</h3>
+    <p class="scenario" style="margin-top:8px">Test má formát <b>situačního testu úsudku</b> (Situational Judgment Test, SJT) – standardizovaného formátu používaného v personální psychologii pro výběr obchodníků. Kandidát u každé situace označí nejúčinnější a nejméně účinnou reakci. Klíč vychází z konzultativního prodeje (SPIN), argumentace celkovými náklady (TCO) a zásad práce s rozhodovací strukturou ve veřejném i průmyslovém sektoru.</p>
+    <div class="tablewrap" style="margin-top:14px"><table>
+      <tr><th>Volba kandidáta</th><th class="num">Body</th></tr>
+      <tr><td>Nejúčinnější = klíčová reakce</td><td class="num">3</td></tr>
+      <tr><td>Nejúčinnější = přijatelná reakce</td><td class="num">1</td></tr>
+      <tr><td>Nejméně účinná = klíčová (nejhorší) reakce</td><td class="num">2</td></tr>
+      <tr><td>Nejméně účinná = druhá nejhorší reakce</td><td class="num">1</td></tr>
+      <tr><td><b>Maximum za situaci / celkem</b></td><td class="num"><b>5 / 50</b></td></tr>
+    </table></div>
+    <div class="tablewrap" style="margin-top:14px"><table>
+      <tr><th>Pásmo</th><th class="num">Body</th><th>Interpretace</th></tr>
+      <tr><td><span class="band A">A</span></td><td class="num">40–50</td><td>vysoce nadprůměrný – doporučeno pokračovat</td></tr>
+      <tr><td><span class="band B">B</span></td><td class="num">32–39</td><td>nadprůměrný – pohovor zaměřit na slabší dimenze</td></tr>
+      <tr><td><span class="band C">C</span></td><td class="num">24–31</td><td>průměrný – vhodný se zaškolením</td></tr>
+      <tr><td><span class="band D">D</span></td><td class="num">0–23</td><td>podprůměrný – nedoporučeno bez dalšího ověření</td></tr>
+    </table></div>
+    <p class="small" style="margin-top:12px">Pásma jsou nastavena podle obvyklé distribuce SJT (náhodné vyplnění ≈ 12–13 b., zkušený obchodník obvykle 38+). Po prvních 15–20 kandidátech doporučujeme hranice ověřit proti vlastním výsledkům a případně posunout. Test je screeningový nástroj – rozhodnutí vždy doplňte pohovorem nebo hraním rolí.</p>
+    <hr>
+    <h3>Klíč k jednotlivým situacím</h3>
+    <div id="keylist">${ITEMS.map((it,i)=>keyBlock(it,i,null)).join("")}</div>
+  </div>`;
+  $("#decodeBtn").onclick=()=>{ const d=decode($("#codeIn").value); if(!d){ alert("Kód nemá správný formát."); return; } renderReport(d); };
+  $("#backBtn").onclick=()=>{ location.reload(); };
+  ev.querySelectorAll(".reslink").forEach(a=>a.onclick=e=>{e.preventDefault(); renderReport(results[+a.dataset.i]);});
+  if(r) renderReport(r);
+  window.scrollTo(0,0);
+}
+function keyBlock(it,i,p){
+  const tags = k => [
+    k===it.best?'<span class="tag b">nejúčinnější</span>':'',
+    k===it.ok?'<span class="tag p">přijatelná</span>':'',
+    k===it.worst?'<span class="tag w">nejméně účinná</span>':'',
+    k===it.pworst?'<span class="tag p">druhá nejhorší</span>':'',
+    p&&p.b===k?'<span class="tag my">kandidát: nejúčinnější</span>':'',
+    p&&p.w===k?'<span class="tag my">kandidát: nejméně účinná</span>':''
+  ].join("");
+  return `<div class="key-item">
+    <div class="row between"><b>${i+1}. ${it.title}</b><span class="small">${DIMS[it.dim]}${p?` · ${p.total}/5 b.`:""}</span></div>
+    <div class="stack" style="gap:6px;margin-top:8px">${it.o.map((t,k)=>`<div class="small"><b>${L[k]}</b> ${t} ${tags(k)}</div>`).join("")}</div>
+    <p class="why">${it.why}</p>
+  </div>`;
+}
+function renderReport(r){
+  const rep = $("#report");
+  const dimRows = Object.keys(DIMS).map(k=>{const d=r.dims[k]; const pct=Math.round(100*d.got/d.max); return `
+    <div class="dim"><span>${DIMS[k]}</span><span class="small" style="font-variant-numeric:tabular-nums">${d.got} / ${d.max}</span><div class="bar"><i style="width:${pct}%"></i></div></div>`;}).join("");
+  const weak = Object.keys(DIMS).filter(k=>r.dims[k].got/r.dims[k].max<0.6).map(k=>DIMS[k]);
+  const summary = `Kód: ${r.code}\nCelkem: ${r.total}/50 – pásmo ${r.band.k}: ${r.band.t}\nČas: ${fmt(r.secs)}${r.timeout?" (vypršel limit)":""}\n`+Object.keys(DIMS).map(k=>`${DIMS[k]}: ${r.dims[k].got}/${r.dims[k].max}`).join("\n")+`\nOdpovědi: `+r.per.map(p=>(p.b===null?"-":L[p.b])+"/"+(p.w===null?"-":L[p.w])).join(" ");
+  rep.innerHTML = `<div class="card">
+    <p class="eyebrow">Výsledek kandidáta</p>
+    <div class="score" style="margin-top:10px">
+      <div class="big">${r.total}<span class="small" style="font-family:'Source Sans 3',sans-serif;font-size:1rem"> / 50</span></div>
+      <div><p class="small" style="font-variant-numeric:tabular-nums">${r.code}</p><p style="margin-top:6px"><span class="band ${r.band.k}">Pásmo ${r.band.k} · ${r.band.t}</span></p></div>
+    </div>
+    <p class="scenario" style="margin-top:14px">${r.band.d}</p>
+    ${weak.length?`<p class="scenario" style="margin-top:8px">Na pohovoru ověřte především: <b>${weak.join(", ")}</b>.</p>`:""}
+    <div class="meta" style="margin-top:18px">
+      <div><b>Čas</b>${fmt(r.secs)}${r.timeout?' <span class="tag w">limit vypršel</span>':""}</div>
+      <div><b>Zodpovězeno</b>${r.per.filter(p=>p.b!==null&&p.w!==null).length} / ${ITEMS.length}</div>
+      <div><b>Datum</b>${r.when?new Date(r.when).toLocaleString("cs-CZ"):"—"}</div>
+    </div>
+    <hr>
+    <h3>Skóre podle dimenzí</h3>
+    <div class="stack" style="margin-top:12px;gap:14px">${dimRows}</div>
+    <hr>
+    <h3>Odpovědi kandidáta proti klíči</h3>
+    <div>${ITEMS.map((it,i)=>keyBlock(it,i,r.per[i])).join("")}</div>
+    <hr>
+    <h3>Souhrn pro personální spis</h3>
+    <textarea id="sum" readonly>${summary}</textarea>
+    <div class="row" style="margin-top:10px"><button id="copySum">Kopírovat souhrn</button><button class="ghost" onclick="window.print()">Tisk / PDF</button></div>
+  </div>`;
+  $("#copySum").onclick=async()=>{ try{ await navigator.clipboard.writeText(summary); $("#copySum").textContent="Zkopírováno"; }catch(e){ $("#sum").select(); } };
+  rep.scrollIntoView({behavior:"smooth"});
+}
+</script>
+
+</body>
+</html>
