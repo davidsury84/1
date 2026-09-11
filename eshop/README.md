@@ -64,10 +64,10 @@ Stejný vzor jako `tridici-linka-dvojce` (modul „Design třídicí linky“):
 3. **SSO z intranetu**: v této službě nastav `INTRANET_SSO_SECRET` = stejná hodnota jako `SSO_SHARED_SECRET`
    v intranetu (volitelně `INTRANET_URL`, výchozí `https://intranet.elkoplast.cz`). Od té chvíle pustí aplikace
    jen zaměstnance přihlášené přes intranet a u sdílených modelů se ukládá jejich jméno.
-4. **Intranet** (repo `mobilnirozhlas`): modul `eshopmodel` „Model e-shopu“ (menu Kalkulačky, dlaždice,
+4. **Intranet** (repo `mobilnirozhlas`): modul `eshopmodel` v sekci „Vývoj projektů → E-shop“ (menu, dlaždice,
    matice přístupů) a trasa `/eshop-model-app`, která přesměruje sem s krátkodobým `?sso=` tokenem.
    V intranetové službě nastav `ESHOP_MODEL_APP_URL` = adresa z kroku 1. Správce pak v matici přístupů
-   zapne modul „Model e-shopu“ kolegům, kteří mají spolupracovat.
+   zapne modul „Vývoj projektů — E-shop“ kolegům, kteří mají spolupracovat.
 
 Bez `INTRANET_SSO_SECRET` běží aplikace otevřeně (lokální vývoj) — kdo má odkaz, vidí a upravuje.
 
