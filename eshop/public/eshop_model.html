@@ -1,0 +1,931 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Drátový model e-shopu — ELKOPLAST</title>
+<style>
+  :root{
+    --bg:#0e1116; --bg2:#151a22; --bg3:#1c232d; --line:#2a333f; --line2:#384455;
+    --tx:#dfe6ef; --tx2:#9aa7b8; --tx3:#65727f;
+    --acc:#39d3b4; --acc2:#1a9d86; --warn:#f0a93b; --bad:#e8604c; --ok:#7bd06b;
+    --front:#3a86c8; --core:#39d3b4; --supply:#f0a93b; --fulfil:#7bd06b; --integ:#b48ee8; --logic:#d97757; --screen:#9aa7b8;
+    --e-data:#3a86c8; --e-goods:#f0a93b; --e-money:#7bd06b; --e-event:#b48ee8; --e-nav:#9aa7b8;
+    --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--tx);font-family:var(--sans);font-size:13px;overflow:hidden}
+  .app{display:flex;flex-direction:column;height:100vh;overflow:hidden}
+
+  header{display:flex;align-items:center;gap:14px;padding:0 16px;height:56px;flex-shrink:0;
+    background:var(--bg2);border-bottom:1px solid var(--line)}
+  .brand{display:flex;flex-direction:column;line-height:1.15}
+  .brand b{font-size:14px;font-weight:600;letter-spacing:.2px}
+  .brand span{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:1.5px}
+  .tools{display:flex;gap:7px;margin-left:6px;flex-wrap:wrap}
+  button.btn{background:var(--bg3);color:var(--tx);border:1px solid var(--line2);border-radius:7px;
+    padding:7px 11px;font-size:12px;cursor:pointer;font-family:var(--sans);transition:.12s}
+  button.btn:hover{border-color:var(--acc);color:#fff}
+  button.run{background:var(--acc2);border-color:var(--acc);color:#04201b;font-weight:600}
+  button.run:hover{background:var(--acc);color:#04201b}
+  button.btn.danger{border-color:var(--bad);color:var(--bad)}
+  button.btn.danger:hover{background:var(--bad);color:#fff}
+  .yield{margin-left:auto;display:flex;gap:18px;align-items:center}
+  .yield .kpi{text-align:right;line-height:1.1}
+  .yield .kpi b{font-family:var(--mono);font-size:18px;display:block}
+  .yield .kpi span{font-size:9.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px}
+
+  .tabs{display:flex;background:var(--bg2);border-bottom:1px solid var(--line);flex-shrink:0;height:36px}
+  .tab{background:transparent;border:0;color:var(--tx2);padding:0 20px;cursor:pointer;font-family:var(--sans);
+    font-size:12.5px;font-weight:500;border-right:1px solid var(--line);display:flex;align-items:center;gap:7px;transition:all .15s}
+  .tab:hover{color:var(--tx);background:var(--bg3)}
+  .tab.on{background:var(--bg);color:var(--tx);border-bottom:2px solid var(--acc);margin-bottom:-1px}
+  .tab .pill{background:var(--bg3);color:var(--tx2);font-size:10px;padding:1px 6px;border-radius:4px;font-family:var(--mono)}
+  .tab.on .pill{background:var(--acc);color:#04201b}
+  .pageWrap{flex:1;overflow:hidden;position:relative}
+  .page{position:absolute;inset:0;display:none;overflow:hidden}
+  .page.on{display:block}
+  #pgCanvas.on{display:grid;grid-template-columns:212px 1fr 326px}
+  #pgProcess.on,#pgHelp.on{display:flex;flex-direction:column;overflow:auto;padding:20px 28px}
+
+  /* palette */
+  aside.palette{background:var(--bg2);border-right:1px solid var(--line);overflow:auto;padding:12px 10px}
+  .pgroup{font-size:9.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:1.4px;margin:14px 4px 7px}
+  .pgroup:first-child{margin-top:2px}
+  .pitem{display:flex;align-items:center;gap:9px;background:var(--bg3);border:1px solid var(--line);
+    border-radius:8px;padding:8px 10px;margin-bottom:6px;cursor:pointer;transition:.12s;user-select:none}
+  .pitem:hover{border-color:var(--acc);transform:translateX(2px)}
+  .pitem b{font-size:12px}
+  .pdot{width:9px;height:9px;border-radius:3px;flex:none}
+  .pitem small{display:block;color:var(--tx3);font-size:10.5px}
+
+  /* canvas */
+  .canvas{position:relative;overflow:hidden;background:
+    radial-gradient(circle at 1px 1px,#222b35 1px,transparent 0) 0 0/22px 22px,var(--bg)}
+  .viewport{position:absolute;left:0;top:0;transform-origin:0 0}
+  svg.edges{position:absolute;left:0;top:0;width:6000px;height:4000px;overflow:visible;pointer-events:none}
+  .edge{fill:none;stroke:var(--line2);stroke-width:2;pointer-events:stroke;cursor:pointer}
+  .edge.t-data{stroke:var(--e-data)}.edge.t-goods{stroke:var(--e-goods)}.edge.t-money{stroke:var(--e-money)}
+  .edge.t-event{stroke:var(--e-event);stroke-dasharray:6 5}.edge.t-nav{stroke:var(--e-nav)}
+  .edge.sel{stroke:#fff;stroke-width:3}
+  .edgehit{fill:none;stroke:transparent;stroke-width:14;pointer-events:stroke;cursor:pointer}
+  .flow{fill:none;stroke:#fff;stroke-linecap:round;stroke-dasharray:2 14;opacity:.55;pointer-events:none;animation:flowmove 1.6s linear infinite}
+  @keyframes flowmove{to{stroke-dashoffset:-16}}
+  .zone{fill-opacity:.045;stroke-opacity:.35;stroke-width:1.5;stroke-dasharray:8 6;rx:14}
+  .zlbl{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;fill-opacity:.55;pointer-events:none}
+  .elbl{font-family:var(--sans);font-size:10px;fill:var(--tx2);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round;pointer-events:none;text-anchor:middle}
+  .elbl.sel{fill:#fff;font-weight:600}
+  .hint{position:absolute;left:50%;top:14px;transform:translateX(-50%);font-size:11px;color:var(--tx3);z-index:5;
+    background:var(--bg2);border:1px solid var(--line);padding:6px 12px;border-radius:20px;pointer-events:none;white-space:nowrap}
+  .legend{position:absolute;left:14px;bottom:14px;z-index:5;background:var(--bg2);border:1px solid var(--line);border-radius:10px;
+    padding:9px 12px;font-size:10.5px;color:var(--tx2);display:grid;gap:4px;min-width:170px}
+  .legend b{color:var(--tx3);font-size:9.5px;text-transform:uppercase;letter-spacing:1px;font-weight:600}
+  .legend .li{display:flex;align-items:center;gap:7px}
+  .legend .sw{width:22px;height:0;border-top:2px solid;flex:none}
+  .legend .sw.ev{border-top-style:dashed}
+
+  .node{position:absolute;width:220px;background:var(--bg2);border:1px solid var(--line2);
+    border-radius:10px;box-shadow:0 2px 0 rgba(0,0,0,.25);user-select:none}
+  .node.sel{border-color:#fff;box-shadow:0 0 0 1px #fff}
+  .node.a-manual{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad),0 0 18px rgba(232,96,76,.35)}
+  .node.a-semi{box-shadow:0 0 0 1px var(--warn)}
+  .node.sink{opacity:.9}
+  .node .hd{display:flex;align-items:center;gap:7px;padding:7px 10px;cursor:grab;
+    border-bottom:1px solid var(--line);border-radius:10px 10px 0 0;font-weight:600;font-size:12px}
+  .node .hd .cdot{width:8px;height:8px;border-radius:2px;flex:none}
+  .node .hd .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .node .sub{height:18px;display:flex;align-items:center;gap:6px;padding:0 10px;font-size:10px;
+    color:var(--tx3);border-bottom:1px solid var(--line);background:rgba(255,255,255,.02);white-space:nowrap;overflow:hidden}
+  .node .sub .mf{color:var(--tx2);font-weight:600;letter-spacing:.3px;text-transform:uppercase;overflow:hidden;text-overflow:ellipsis}
+  .node .sub .dot{color:var(--line2)}
+  .abadge{font-family:var(--mono);font-size:9.5px;padding:1px 5px;border-radius:4px;flex:none}
+  .abadge.auto{background:rgba(57,211,180,.15);color:var(--acc)}
+  .abadge.semi{background:rgba(240,169,59,.18);color:var(--warn)}
+  .abadge.manual{background:rgba(232,96,76,.2);color:var(--bad)}
+  .node .bd{position:relative;padding:6px 0 8px}
+  .prow{height:24px;display:flex;align-items:center;justify-content:space-between;position:relative;padding:0 14px}
+  .plabel{font-size:10.5px;color:var(--tx2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .plabel.o{margin-left:auto;text-align:right}
+  .port{position:absolute;width:12px;height:12px;border-radius:50%;background:var(--bg3);
+    border:2px solid var(--line2);cursor:crosshair;top:50%;transform:translateY(-50%)}
+  .port:hover{border-color:var(--acc);background:var(--acc)}
+  .port.pin{left:-7px}.port.pout{right:-7px}
+  .node .note{font-size:10px;color:var(--tx3);padding:0 10px 6px;line-height:1.35;white-space:pre-wrap}
+
+  /* mini-wireframe uvnitř uzlu obrazovky */
+  .wire{margin:8px 10px 2px;background:#f2f4f7;border-radius:5px;padding:6px;display:flex;flex-direction:column;gap:3px;overflow:hidden}
+  .wire .wb{display:flex;gap:3px;flex:none}
+  .wire .bx{background:#c9d0da;border-radius:2px;flex:1}
+  .wire .bx.dk{background:#9aa5b5}
+  .wire .bx.ac{background:#39b394}
+  .wire .bx.ln{background:#dde2e9;border:1px solid #c9d0da}
+  .wire .bx.w1{flex:0 0 22%}.wire .bx.w2{flex:0 0 40%}
+  .wire .wb.col{flex-direction:column;gap:2px}.wire .wb.col .bx{flex:none}
+  .wire .cap{font-size:8px;color:#6c7684;line-height:1;margin-top:-1px}
+
+  /* inspector */
+  aside.insp{background:var(--bg2);border-left:1px solid var(--line);overflow:auto;padding:14px 14px 40px}
+  .ititle{font-size:13px;font-weight:600;margin:2px 0 3px}
+  .isub{font-size:10.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;margin:16px 0 8px}
+  .empty{color:var(--tx2);font-size:12px;line-height:1.6}
+  .empty b{color:var(--tx)}
+  label.f{display:block;margin-bottom:10px}
+  label.f span{display:block;font-size:11px;color:var(--tx2);margin-bottom:4px}
+  input.in,select.in,textarea.in{width:100%;background:var(--bg);border:1px solid var(--line2);color:var(--tx);
+    border-radius:6px;padding:7px 8px;font-size:12px;font-family:var(--sans)}
+  textarea.in{min-height:64px;resize:vertical;line-height:1.4}
+  input.in:focus,select.in:focus,textarea.in:focus{outline:none;border-color:var(--acc)}
+  .chips{display:flex;flex-wrap:wrap;gap:5px}
+  .chip{font-size:11px;padding:4px 8px;border-radius:6px;border:1px solid var(--line2);
+    color:var(--tx2);cursor:pointer;background:var(--bg);user-select:none}
+  .chip.on{background:var(--acc2);border-color:var(--acc);color:#04201b}
+  .chip.manual.on{background:var(--bad);border-color:var(--bad);color:#fff}
+  .chip.semi.on{background:var(--warn);border-color:var(--warn);color:#0b0d12}
+  .linkrow{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx2);padding:4px 0;border-bottom:1px dashed var(--line);cursor:pointer}
+  .linkrow:hover{color:var(--tx)}
+  .linkrow .sw{width:14px;border-top:2px solid;flex:none}
+  .irow{display:flex;gap:6px;margin-top:12px}
+  .irow .btn{flex:1}
+  .card{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:10px 12px;font-size:11.5px;color:var(--tx2);line-height:1.5;margin-bottom:10px}
+  .card b{color:var(--tx)}
+
+  /* procesy */
+  .pgHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
+  .pgHead h2{margin:0;font-size:18px;font-weight:600}
+  .pgHead .sub{color:var(--tx2);font-size:12px;margin-top:3px}
+  .pgHead .ctrls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .sumBar{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px;margin-bottom:18px;max-width:1100px}
+  .sumBox{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+  .sumBox b{font-family:var(--mono);font-size:22px;display:block}
+  .sumBox span{font-size:10.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px}
+  .bar{height:6px;background:var(--bg3);border-radius:3px;overflow:hidden;margin-top:8px;display:flex}
+  .bar i{display:block;height:100%}
+  .flowTabs{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+  .flowTabs button{background:var(--bg3);border:1px solid var(--line);color:var(--tx2);border-radius:7px;padding:6px 12px;font-size:12px;cursor:pointer;font-family:var(--sans)}
+  .flowTabs button.on{border-color:var(--acc);color:#fff;background:var(--bg)}
+  table.proc{width:100%;border-collapse:collapse;max-width:1400px}
+  table.proc th{font-size:10.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:1px;text-align:left;padding:6px 8px;border-bottom:1px solid var(--line2);font-weight:600}
+  table.proc td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+  table.proc input,table.proc select{width:100%;background:var(--bg);border:1px solid var(--line);color:var(--tx);border-radius:5px;padding:5px 7px;font-size:12px;font-family:var(--sans)}
+  table.proc input:focus,table.proc select:focus{outline:none;border-color:var(--acc)}
+  table.proc select.manual{color:var(--bad);border-color:rgba(232,96,76,.5)}
+  table.proc select.semi{color:var(--warn)}
+  table.proc select.auto{color:var(--acc)}
+  table.proc .num{font-family:var(--mono);color:var(--tx3);font-size:11px;width:30px}
+  table.proc .del{background:transparent;border:1px solid var(--line2);color:var(--tx3);border-radius:5px;cursor:pointer;padding:3px 7px;font-size:11px}
+  table.proc .del:hover{border-color:var(--bad);color:var(--bad)}
+  .ftag{font-size:10px;padding:2px 7px;border-radius:5px;font-family:var(--mono);white-space:nowrap}
+  .ftag.common{background:rgba(57,211,180,.15);color:var(--acc)}
+  .ftag.stock{background:rgba(240,169,59,.18);color:var(--warn)}
+  .ftag.own{background:rgba(58,134,200,.2);color:#7fb3e6}
+  .ftag.drop{background:rgba(180,142,232,.2);color:var(--integ)}
+
+  /* nápověda */
+  .helpGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;max-width:1300px}
+  .helpBox{background:var(--bg2);border:1px solid var(--line);border-radius:10px;padding:16px 18px;font-size:12.5px;line-height:1.6;color:var(--tx2)}
+  .helpBox h3{margin:0 0 8px;font-size:13.5px;color:var(--tx);display:flex;align-items:center;gap:8px}
+  .helpBox ul,.helpBox ol{margin:6px 0 0;padding-left:18px}
+  .helpBox li{margin-bottom:3px}
+  .helpBox code{font-family:var(--mono);font-size:11px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--tx)}
+
+  .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--acc);color:var(--tx);
+    padding:9px 16px;border-radius:9px;font-size:12px;z-index:50;opacity:0;transition:.25s;pointer-events:none}
+  .toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="brand"><b>Drátový model e-shopu</b><span>ELKOPLAST · shop.elkoplast.cz · logika &amp; vazby</span></div>
+    <div class="tools">
+      <button class="btn run" onclick="autoLayoutCheck()">✔ Zkontrolovat model</button>
+      <button class="btn" onclick="saveProj()">Uložit JSON</button>
+      <button class="btn" onclick="document.getElementById('loadf').click()">Načíst JSON</button>
+      <button class="btn" onclick="shareProj()">Sdílet odkaz</button>
+      <button class="btn" onclick="fitView()">Zarovnat pohled</button>
+      <button class="btn" onclick="resetDefault()">Výchozí model</button>
+      <button class="btn danger" onclick="clearCanvas()">Vyčistit plátno</button>
+      <input id="loadf" type="file" accept=".json" style="display:none" onchange="loadProj(this.files[0])">
+    </div>
+    <div class="yield">
+      <div class="kpi"><b id="kpiNodes">0</b><span>bloků</span></div>
+      <div class="kpi"><b id="kpiEdges">0</b><span>vazeb</span></div>
+      <div class="kpi"><b id="kpiAuto" style="color:var(--acc)">—</b><span>automatizace</span></div>
+      <div class="kpi"><b id="kpiManual" style="color:var(--bad)">0</b><span>lidských kroků</span></div>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab on" data-page="logic" onclick="setPage('logic')">🧩 Logika e-shopu <span class="pill" id="tabLogicCnt">0</span></button>
+    <button class="tab" data-page="screens" onclick="setPage('screens')">🖥 Obrazovky <span class="pill" id="tabScreenCnt">0</span></button>
+    <button class="tab" data-page="process" onclick="setPage('process')">⚙ Procesy &amp; automatizace <span class="pill" id="tabProcCnt">0</span></button>
+    <button class="tab" data-page="help" onclick="setPage('help')">❔ Jak číst model</button>
+  </nav>
+
+  <div class="pageWrap">
+    <div class="page on" id="pgCanvas">
+      <aside class="palette" id="palette"></aside>
+      <div class="canvas" id="canvas">
+        <div class="hint" id="hint">Klikni na blok v paletě → přidá se na plátno · táhni z výstupního portu (vpravo) na vstupní (vlevo) → vazba · kolečko = zoom · Delete maže</div>
+        <div class="legend" id="legend"></div>
+        <div class="viewport" id="viewport">
+          <svg class="edges" id="edges"></svg>
+          <div id="nodes"></div>
+        </div>
+      </div>
+      <aside class="insp" id="insp"></aside>
+    </div>
+    <div class="page" id="pgProcess"></div>
+    <div class="page" id="pgHelp"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* =====================================================================
+   DRÁTOVÝ MODEL E-SHOPU — ELKOPLAST
+   Stejný princip jako digitální dvojče třídicí linky:
+   paleta bloků → plátno (uzly + vazby v SVG) → inspektor vlastností.
+   Dva diagramy: LOGIKA (systémy, procesy, datové/zbožové toky)
+                 OBRAZOVKY (stránky e-shopu a navigace mezi nimi)
+   + tabulka PROCESŮ (co dnes dělá člověk a jak to automatizujeme).
+   ===================================================================== */
+
+/* ============ KATEGORIE A TYPY BLOKŮ ============ */
+const CAT={
+  front:{label:"Zákaznická vrstva",color:"var(--front)"},
+  core:{label:"Jádro e-shopu",color:"var(--core)"},
+  supply:{label:"Zásobování (3 zdroje zboží)",color:"var(--supply)"},
+  fulfil:{label:"Plnění objednávky",color:"var(--fulfil)"},
+  integ:{label:"Integrace & data",color:"var(--integ)"},
+  logic:{label:"Logika / automat",color:"var(--logic)"},
+  screen:{label:"Obrazovky",color:"var(--screen)"}
+};
+const AUTO_LBL={auto:"⚙ AUTO",semi:"◐ POLO",manual:"✋ RUČNĚ"};
+const API_OPTS=["REST API","Webhook","XML/CSV feed","EDI / ISDOC","Databáze / sync","E-mail (automat)","Ruční přepis"];
+
+// ins = popisky vstupních portů, outs = [klíč, popisek] výstupních portů
+// auto = výchozí míra automatizace (null = koncový/externí blok, nepočítá se)
+const TYPES={
+  /* zákaznická vrstva */
+  customer:{label:"Zákazník",cat:"front",desc:"B2C i B2B; koncový bod toku",ins:["zpráva / zásilka"],outs:[["visit","návštěva"],["order","objednávka"],["claim","reklamace"]],auto:null},
+  channel:{label:"Akviziční kanál",cat:"front",desc:"Heureka, Zboží, Google, e-mail",ins:["feed / kampaň"],outs:[["traffic","návštěvnost"]],auto:"auto"},
+  web:{label:"Storefront (web)",cat:"front",desc:"katalog, vyhledávání, detail",ins:["návštěvnost","katalog (PIM)","ceny","dostupnost"],outs:[["cart","do košíku"],["events","události"]],auto:"auto"},
+  cart:{label:"Košík & checkout",cat:"front",desc:"1 krok, doprava, platba",ins:["z webu / účtu"],outs:[["order","objednávka"],["pay","platba"]],auto:"auto"},
+  account:{label:"Účet / B2B portál",cat:"front",desc:"ceníky, opak. nákup, faktury",ins:["přihlášení"],outs:[["order","objednávka"],["docs","doklady / historie"]],auto:"auto"},
+  delivery:{label:"Doručení zákazníkovi",cat:"front",desc:"koncový stav objednávky",ins:["zásilka","přímo od dodavatele"],outs:[["claim","vratka / reklamace"]],auto:null},
+  /* jádro */
+  pim:{label:"PIM – produktová data",cat:"core",desc:"jediný zdroj pravdy o produktech",ins:["vlastní výrobky","feedy dodavatelů","AI obsah"],outs:[["catalog","katalog"],["feeds","exportní feedy"]],auto:"auto"},
+  pricing:{label:"Cenotvorba",cat:"core",desc:"marže, B2B ceníky, akce",ins:["nákupní ceny","pravidla"],outs:[["price","prodejní ceny"]],auto:"auto"},
+  stock:{label:"Dostupnostní engine",cat:"core",desc:"sklad + výroba + dropship → termín",ins:["stav skladu","plán výroby","sklad dodavatele"],outs:[["avail","dostupnost + termín"]],auto:"auto"},
+  search:{label:"Vyhledávání & doporučení",cat:"core",desc:"fulltext, filtry, AI doporučení",ins:["katalog"],outs:[["results","výsledky"]],auto:"auto"},
+  payment:{label:"Platební brána",cat:"core",desc:"karta, převod, faktura B2B",ins:["platba"],outs:[["paid","zaplaceno"],["failed","neuhrazeno"]],auto:"auto"},
+  oms:{label:"OMS – řízení objednávek",cat:"core",desc:"stavy, rozpad položek, sync",ins:["objednávka","platba","změny / vratky"],outs:[["confirmed","potvrzená obj."],["status","stav objednávky"],["docs","podklady"]],auto:"auto"},
+  router:{label:"Směrovač objednávky",cat:"logic",desc:"rozdělí položky dle zdroje",ins:["potvrzená obj."],outs:[["own","→ vlastní výroba"],["stock","→ ze skladu"],["drop","→ dropship"]],auto:"auto"},
+  invoicing:{label:"Fakturace & doklady",cat:"core",desc:"faktura, dobropis, zálohy",ins:["podklady","platba"],outs:[["invoice","faktura PDF"],["acc","účetnictví"]],auto:"auto"},
+  /* zásobování */
+  production:{label:"Vlastní výroba",cat:"supply",desc:"výrobní zakázka, plán, kapacita",ins:["výrobní zakázka","materiál"],outs:[["done","hotový výrobek"],["plan","plán / kapacita"]],auto:"auto"},
+  purchasing:{label:"Nákup na sklad",cat:"supply",desc:"auto-objednávky dle min/max",ins:["stav zásob","prognóza"],outs:[["po","objednávka dodavateli"]],auto:"auto"},
+  supplier:{label:"Dodavatel (na sklad)",cat:"supply",desc:"externí firma",ins:["objednávka"],outs:[["delivery","dodávka"],["feed","ceník / dostupnost"]],auto:null},
+  dropship:{label:"Dropship dodavatel",cat:"supply",desc:"posílá přímo zákazníkovi",ins:["objednávka (API/EDI)"],outs:[["ship","zásilka zákazníkovi"],["feed","feed produktů + skladu"],["track","tracking + faktura"]],auto:"auto"},
+  wms:{label:"Sklad / WMS",cat:"supply",desc:"příjem, zásoby, vychystání",ins:["příjem z výroby","příjem od dodavatele","výdejka / pick"],outs:[["pick","vychystaný balík"],["level","stav zásob"]],auto:"auto"},
+  /* plnění */
+  shipping:{label:"Expedice & dopravci",cat:"fulfil",desc:"API dopravců, štítky, svoz",ins:["balík","tracking dropship"],outs:[["parcel","zásilka"],["track","tracking"]],auto:"auto"},
+  notify:{label:"Notifikace zákazníka",cat:"fulfil",desc:"e-mail / SMS / push",ins:["událost"],outs:[["msg","zpráva"]],auto:"auto"},
+  returns:{label:"Vratky & reklamace",cat:"fulfil",desc:"samoobsluha, refundace",ins:["požadavek"],outs:[["refund","refundace"],["restock","zpět na sklad"]],auto:"semi"},
+  support:{label:"Zákaznický servis",cat:"fulfil",desc:"AI asistent + eskalace",ins:["dotaz"],outs:[["answer","odpověď"],["escal","eskalace člověku"]],auto:"semi"},
+  /* integrace */
+  erp:{label:"ERP / účetnictví",cat:"integ",desc:"doklady, sklad, výroba",ins:["objednávky","doklady"],outs:[["sync","synchronizace"]],auto:"auto"},
+  crm:{label:"CRM & marketing automat",cat:"integ",desc:"segmenty, kampaně, remarketing",ins:["zákazníci","události"],outs:[["campaign","kampaně"]],auto:"auto"},
+  analytics:{label:"Analytika / BI",cat:"integ",desc:"prodeje, prognózy, KPI",ins:["události / data"],outs:[["insight","reporty"],["forecast","prognóza"]],auto:"auto"},
+  ai:{label:"AI agent",cat:"integ",desc:"obsah, překlady, podpora",ins:["zadání / data"],outs:[["out","výstup"]],auto:"auto"},
+  /* logika */
+  rule:{label:"Pravidlo / podmínka",cat:"logic",desc:"rozhodnutí ano / ne",ins:["vstup"],outs:[["yes","ano"],["no","ne"]],auto:"auto"},
+  merge:{label:"Sloučení toků",cat:"logic",desc:"spojí více vstupů",ins:["vstup A","vstup B"],outs:[["out","výstup"]],auto:"auto"},
+  manual:{label:"Lidský krok",cat:"logic",desc:"místo, kde dnes pracuje člověk",ins:["vstup"],outs:[["out","výstup"]],auto:"manual"},
+  /* obrazovky */
+  screen:{label:"Obrazovka",cat:"screen",desc:"stránka e-shopu",ins:["vstup"],outs:[["nav","→ přechod"]],auto:null,wire:true}
+};
+const PALETTE_LOGIC=[
+  ["Zákaznická vrstva",["customer","channel","web","cart","account","delivery"]],
+  ["Jádro e-shopu",["pim","pricing","stock","search","payment","oms","invoicing"]],
+  ["Zásobování",["production","purchasing","supplier","dropship","wms"]],
+  ["Plnění objednávky",["shipping","notify","returns","support"]],
+  ["Integrace & data",["erp","crm","analytics","ai"]],
+  ["Logika",["router","rule","merge","manual"]]
+];
+/* stavební bloky obrazovek (mini drátěnky) */
+const BLOCKS={
+  hdr:"Hlavička + menu + hledání",hero:"Hero banner / USP",grid:"Mřížka produktů",filters:"Filtry + výpis",
+  gallery:"Galerie + info o produktu",avail:"Dostupnost / termín dodání",cta:"Hlavní tlačítko",list:"Seznam řádků",
+  form:"Formulář",summary:"Souhrn objednávky",steps:"Kroky procesu",table:"Tabulka",tabs:"Záložky",
+  config:"Konfigurátor",map:"Mapa / tracking",footer:"Patička"
+};
+const SCREEN_PRESETS=[
+  ["home","Domovská stránka",["hdr","hero","grid","footer"]],
+  ["category","Kategorie / výpis",["hdr","filters","grid","footer"]],
+  ["product","Detail produktu",["hdr","gallery","avail","cta","tabs"]],
+  ["configurator","Konfigurátor výrobku",["hdr","config","avail","cta"]],
+  ["cart","Košík",["hdr","list","summary","cta"]],
+  ["checkout","Checkout (1 krok)",["hdr","steps","form","summary","cta"]],
+  ["thanks","Potvrzení objednávky",["hdr","summary","map"]],
+  ["account","Účet zákazníka",["hdr","tabs","table"]],
+  ["b2b","B2B portál",["hdr","tabs","table","cta"]],
+  ["tracking","Sledování zásilky",["hdr","steps","map"]],
+  ["returns","Vratka / reklamace",["hdr","form","cta"]],
+  ["generic","Obecná stránka",["hdr","list","footer"]]
+];
+
+/* typy vazeb */
+const EDGE_TYPES={data:"Data",goods:"Zboží",money:"Peníze",event:"Událost",nav:"Navigace"};
+const TRIGGERS=["realtime / webhook","cron (pravidelně)","při změně stavu","ručně"];
+
+/* ============ STAV ============ */
+let state=null, dg="logic", sel=null, uid=1, currentPage="logic";
+let pans={logic:{x:30,y:20,z:0.8},screens:{x:30,y:30,z:0.85}};
+function D(){return state.diagrams[dg];}
+function pan(){return pans[dg];}
+
+function nodeDefaults(type){const T=TYPES[type];return {system:"",auto:T.auto,owner:"",api:T.cat==="screen"?"":"REST API",sla:"",note:"",url:"",blocks:[]};}
+function newNode(type,x,y){const T=TYPES[type];return {id:"n"+(uid++),type,name:T.label,x,y,params:nodeDefaults(type)};}
+function newEdge(from,fp,to,tp,extra){return Object.assign({id:"e"+(uid++),from,fp,to,tp,label:"",etype:dg==="screens"?"nav":"data",trigger:TRIGGERS[0],payload:"",note:""},extra||{});}
+function emptyState(){return {ver:1,meta:{name:"Nový e-shop ELKOPLAST",author:""},diagrams:{logic:{nodes:[],edges:[],zones:[]},screens:{nodes:[],edges:[],zones:[]}},process:[]};}
+
+/* ============ VÝCHOZÍ MODEL — LOGIKA ============ */
+function buildDefaultLogic(){
+  const nodes=[],edges=[];
+  const N=(t,x,y,name,p)=>{const n=newNode(t,x,y);if(name)n.name=name;if(p)Object.assign(n.params,p);nodes.push(n);return n;};
+  const E=(a,ap,b,bi,label,etype,extra)=>{edges.push(Object.assign(newEdge(a.id,ap,b.id,"in"+bi),{label,etype:etype||"data"},extra||{}));};
+  // sloupce
+  const A=20,B=280,C=540,D_=800,E_=1060,F=1320,G=1580,H=1840,I=2100;
+  const ai=N("ai",A,20,"AI agent (obsah)",{system:"LLM API",note:"popisy, překlady, SEO, odpovědi na dotazy"});
+  const pim=N("pim",B,20,"PIM – produktová data",{system:"PIM / e-shop admin",note:"vlastní výrobky + zboží na sklad + dropship sortiment"});
+  const pricing=N("pricing",C,20,"Cenotvorba",{system:"cenová pravidla",note:"nákupní cena + marže dle zdroje; B2B ceníky; akce"});
+  const stock=N("stock",D_,20,"Dostupnostní engine",{system:"vlastní služba",note:"skladem → ihned; vlastní výroba → dle kapacity; dropship → dle dodavatele"});
+  const search=N("search",E_,20,"Vyhledávání & doporučení",{system:"fulltext + AI"});
+  const analytics=N("analytics",F,20,"Analytika / BI",{system:"GA4 + BI",note:"prodeje, marže dle zdroje, prognóza poptávky"});
+
+  const channel=N("channel",A,262,"Heureka · Zboží · Google",{system:"XML feedy",api:"XML/CSV feed"});
+  const b2c=N("customer",A,410,"Zákazník B2C");
+  const b2b=N("customer",A,615,"Zákazník B2B (firmy, obce)");
+  const web=N("web",B,330,"Storefront shop.elkoplast.cz",{system:"nový e-shop",note:"responzivní, rychlý, SEO; dostupnost a termín u každé položky"});
+  const account=N("account",B,615,"Účet / B2B portál",{system:"nový e-shop",note:"individuální ceníky, hromadná objednávka, faktury, opakovaný nákup"});
+  const cart=N("cart",C,330,"Košík & checkout",{note:"1 krok; doprava a platba dle složení košíku (více zdrojů = více zásilek)"});
+  const pay=N("payment",D_,330,"Platební brána",{system:"Comgate / GoPay",api:"Webhook",note:"B2B: platba fakturou se splatností"});
+  const oms=N("oms",E_,330,"OMS – řízení objednávek",{system:"nový e-shop / ERP",note:"stavy, rozpad na dílčí zásilky, žádné ruční přepisy"});
+  const router=N("router",F,330,"Směrovač objednávky",{note:"pravidla: položka skladem → WMS; vlastní výrobek → výroba; dropship → dodavatel"});
+  const invoicing=N("invoicing",D_,615,"Fakturace & doklady",{system:"ERP",note:"faktura při expedici, dobropis při vratce"});
+  const notify=N("notify",C,615,"Notifikace zákazníka",{system:"e-mail / SMS",note:"přijato · zaplaceno · ve výrobě · expedováno · doručeno"});
+
+  const production=N("production",G,60,"Vlastní výroba",{system:"ERP / MES",note:"výrobní zakázka vzniká automaticky z objednávky"});
+  const wms=N("wms",G,320,"Sklad / WMS",{system:"WMS + čtečky",note:"jediný stav zásob pro web i ERP"});
+  const dropship=N("dropship",G,600,"Dropship dodavatel",{system:"API / EDI / feed",api:"REST API",note:"objednávka odchází automaticky; tracking zpět webhookem"});
+  const purchasing=N("purchasing",H,60,"Nákup na sklad",{system:"ERP",note:"auto-PO při poklesu pod minimum + prognóza"});
+  const supplier=N("supplier",I,60,"Dodavatel (na sklad)",{api:"E-mail (automat)"});
+  const shipping=N("shipping",H,320,"Expedice & dopravci",{system:"Balíkobot / API dopravců",api:"REST API",note:"štítek + svoz bez lidského zásahu"});
+  const delivery=N("delivery",I,320,"Doručení zákazníkovi");
+  const returns=N("returns",I,600,"Vratky & reklamace",{note:"samoobslužný formulář; refundace do limitu automaticky"});
+  const support=N("support",A,815,"Zákaznický servis",{system:"AI asistent",note:"odpovídá z dat OMS a trackingu; člověk jen eskalace"});
+  const crm=N("crm",C,815,"CRM & marketing automat",{system:"e-mailing / CRM"});
+  const erp=N("erp",E_,815,"ERP / účetnictví",{system:"Pohoda / ABRA / Helios",api:"Databáze / sync"});
+
+  // datová vrstva
+  E(ai,"out",pim,2,"popisy, překlady, SEO texty","data",{trigger:"při změně stavu"});
+  E(pim,"catalog",web,1,"katalog produktů");
+  E(pim,"catalog",search,0,"index");
+  E(pim,"feeds",channel,0,"XML feedy (Heureka, Zboží, Google)","data",{trigger:"cron (pravidelně)"});
+  E(pricing,"price",web,2,"prodejní ceny + B2B ceníky");
+  E(stock,"avail",web,3,"dostupnost + termín dodání");
+  E(search,"results",web,1,"výsledky / doporučení");
+  E(production,"plan",stock,1,"plán a kapacita výroby");
+  E(wms,"level",stock,0,"stav skladu");
+  E(dropship,"feed",stock,2,"sklad dodavatele","data",{trigger:"cron (pravidelně)"});
+  E(dropship,"feed",pim,1,"produkty dropship","data",{trigger:"cron (pravidelně)"});
+  E(supplier,"feed",pricing,0,"nákupní ceny");
+  // cesta zákazníka
+  E(channel,"traffic",web,0,"návštěvnost","event");
+  E(b2c,"visit",web,0,"návštěva","event");
+  E(b2b,"visit",account,0,"přihlášení","event");
+  E(account,"order",cart,0,"hromadná / opakovaná obj.");
+  E(web,"cart",cart,0,"do košíku","event");
+  E(web,"events",analytics,0,"události (GA4)","event");
+  E(cart,"pay",pay,0,"platba","money");
+  E(cart,"order",oms,0,"objednávka");
+  E(pay,"paid",oms,1,"zaplaceno","event",{trigger:"realtime / webhook"});
+  E(oms,"confirmed",router,0,"potvrzená objednávka");
+  E(oms,"status",notify,0,"změna stavu","event",{trigger:"při změně stavu"});
+  E(oms,"docs",invoicing,0,"podklady k fakturaci");
+  E(oms,"docs",erp,0,"synchronizace objednávek","data",{trigger:"realtime / webhook"});
+  E(invoicing,"acc",erp,1,"doklady do účetnictví");
+  E(invoicing,"invoice",notify,0,"faktura PDF");
+  E(notify,"msg",b2c,0,"e-mail / SMS","event");
+  E(notify,"msg",b2b,0,"e-mail + faktura","event");
+  // směrování dle zdroje
+  E(router,"own",production,0,"výrobní zakázka");
+  E(router,"stock",wms,2,"výdejka / pick-list");
+  E(router,"drop",dropship,0,"objednávka dodavateli (API/EDI)","data",{trigger:"realtime / webhook"});
+  // fyzický tok
+  E(production,"done",wms,0,"hotový výrobek → příjem","goods");
+  E(wms,"pick",shipping,0,"vychystaný balík","goods");
+  E(dropship,"ship",delivery,1,"zásilka přímo zákazníkovi","goods");
+  E(dropship,"track",shipping,1,"tracking + faktura dodavatele","data",{trigger:"realtime / webhook"});
+  E(shipping,"parcel",delivery,0,"zásilka","goods");
+  E(shipping,"track",oms,2,"stav doručení","event",{trigger:"realtime / webhook"});
+  // nákup na sklad
+  E(wms,"level",purchasing,0,"pokles pod minimum","event",{trigger:"při změně stavu"});
+  E(analytics,"forecast",purchasing,1,"prognóza prodejů","data",{trigger:"cron (pravidelně)"});
+  E(purchasing,"po",supplier,0,"automatická objednávka");
+  E(supplier,"delivery",wms,1,"dodávka + příjemka","goods");
+  // vratky, servis, marketing
+  E(delivery,"claim",returns,0,"vratka / reklamace","goods");
+  E(returns,"refund",pay,0,"refundace","money");
+  E(returns,"restock",wms,1,"zpět na sklad","goods");
+  E(b2c,"claim",support,0,"dotaz / reklamace","event");
+  E(support,"escal",returns,0,"eskalace","event");
+  E(analytics,"insight",crm,1,"segmenty, RFM");
+  E(crm,"campaign",channel,0,"kampaně, remarketing","event",{trigger:"cron (pravidelně)"});
+  const zones=[
+    {x:0,y:-10,w:1545,h:215,label:"1 · Datová vrstva — produkty · ceny · dostupnost · obsah",color:"var(--core)"},
+    {x:0,y:215,w:1545,h:345,label:"2 · Cesta zákazníka → objednávka → platba → směrovač",color:"var(--front)"},
+    {x:0,y:570,w:1545,h:410,label:"3 · Doklady · notifikace · servis · marketing · ERP",color:"var(--integ)"},
+    {x:1560,y:-10,w:790,h:250,label:"4a · Vlastní výroba + nákup na sklad",color:"var(--supply)"},
+    {x:1560,y:250,w:790,h:290,label:"4b · Sklad → expedice → doručení",color:"var(--fulfil)"},
+    {x:1560,y:550,w:790,h:405,label:"4c · Dropship (přímo zákazníkovi) · vratky",color:"var(--integ)"}
+  ];
+  return {nodes,edges,zones};
+}
+
+/* ============ VÝCHOZÍ MODEL — OBRAZOVKY ============ */
+function buildDefaultScreens(){
+  const nodes=[],edges=[];
+  const S=(kind,x,y,url,note)=>{const P=SCREEN_PRESETS.find(p=>p[0]===kind);const n=newNode("screen",x,y);n.name=P[1];
+    n.params.kind=kind;n.params.blocks=[...P[2]];n.params.url=url||"";n.params.note=note||"";nodes.push(n);return n;};
+  const E=(a,b,label)=>edges.push(Object.assign(newEdge(a.id,"nav",b.id,"in0"),{label,etype:"nav"}));
+  const home=S("home",20,260,"/","USP: vlastní výroba · skladem ihned · široký sortiment partnerů");
+  const cat=S("category",280,260,"/kategorie/…","filtr dle dostupnosti: skladem / na objednávku / z výroby");
+  const prod=S("product",540,200,"/produkt/…","3 režimy dostupnosti s termínem: skladem · vyrobíme do X dnů · odesílá partner do Y dnů");
+  const conf=S("configurator",540,520,"/konfigurator/…","vlastní výrobky: rozměr, barva, potisk → cena + termín okamžitě");
+  const cart=S("cart",800,260,"/kosik","upozornění: položky z více zdrojů = více zásilek");
+  const chk=S("checkout",1060,260,"/pokladna","1 krok; B2B: faktura se splatností; uložené adresy");
+  const thanks=S("thanks",1320,260,"/dekujeme","shrnutí + předpokládané termíny per zásilka");
+  const track=S("tracking",1580,260,"/sledovani/…","stav per dílčí zásilka (sklad / výroba / partner)");
+  const acc=S("account",1320,560,"/ucet","objednávky, faktury, adresy, opakovaný nákup");
+  const b2b=S("b2b",20,560,"/b2b","individuální ceníky, hromadný import košíku (CSV), splatnost");
+  const ret=S("returns",1580,560,"/vratka","samoobslužná vratka bez telefonování");
+  E(home,cat,"klik na kategorii");E(home,prod,"doporučený produkt");E(cat,prod,"klik na produkt");
+  E(prod,conf,"upravit vlastní výrobek");E(conf,cart,"do košíku");E(prod,cart,"do košíku");
+  E(cart,chk,"pokračovat");E(chk,thanks,"odeslat objednávku");E(thanks,track,"sledovat zásilku");
+  E(thanks,acc,"můj účet");E(acc,ret,"vrátit zboží");E(b2b,cat,"katalog s mými cenami");E(b2b,cart,"hromadný import");E(acc,track,"detail objednávky");
+  const zones=[
+    {x:0,y:170,w:1830,h:290,label:"Hlavní nákupní cesta — domů → kategorie → detail → košík → checkout → potvrzení → sledování",color:"var(--front)"},
+    {x:0,y:480,w:1830,h:260,label:"Vedlejší cesty — B2B portál · konfigurátor vlastního výrobku · účet · vratka",color:"var(--screen)"}
+  ];
+  return {nodes,edges,zones};
+}
+
+/* ============ VÝCHOZÍ PROCESY ============ */
+const FLOW_LBL={common:"Společné",stock:"Zboží na sklad",own:"Vlastní výroba",drop:"Dropshipping"};
+function buildDefaultProcess(){
+  const P=(flow,step,now,target,tool,trigger)=>({id:"p"+(uid++),flow,step,now,target,tool,trigger});
+  return [
+    P("common","Import produktových dat (vlastní + dodavatelé)","manual","auto","PIM + feedy dodavatelů (XML/CSV/API)","cron 1×/h"),
+    P("common","Tvorba popisů, překladů a SEO textů","manual","auto","AI agent + schválení jen výjimek","nový produkt v PIM"),
+    P("common","Aktualizace cen a marží","manual","auto","cenová pravidla (nákupní cena + marže dle zdroje)","změna nákupní ceny"),
+    P("common","Aktualizace dostupnosti a dodacích lhůt","semi","auto","dostupnostní engine (sklad + výroba + dropship)","realtime"),
+    P("common","Přijetí objednávky a potvrzení zákazníkovi","semi","auto","OMS + notifikace","webhook"),
+    P("common","Ověření platby a spárování","semi","auto","platební brána webhook / párování VS","webhook"),
+    P("common","Rozdělení objednávky podle zdroje položek","manual","auto","směrovač: skladem → WMS · vlastní → výroba · dropship → dodavatel","potvrzená objednávka"),
+    P("common","Vystavení faktury a zaúčtování","manual","auto","fakturace + ERP API","expedice / platba"),
+    P("common","Informování zákazníka o stavu","semi","auto","e-mail / SMS z OMS","změna stavu"),
+    P("common","Zákaznický servis (dotazy na stav, termín)","manual","semi","AI asistent nad daty OMS + eskalace člověku","příchozí dotaz"),
+    P("common","Reklamace a vratky","manual","semi","samoobslužný formulář + automatická refundace do limitu","požadavek zákazníka"),
+    P("common","Reporting a prognózy prodejů","manual","auto","BI dashboard, prognóza poptávky","týdně"),
+    P("stock","Hlídání minimálních zásob","manual","auto","WMS min/max + prognóza","realtime"),
+    P("stock","Objednávka zboží dodavateli","manual","auto","auto-PO e-mail / API / EDI","pokles pod minimum"),
+    P("stock","Příjem zboží na sklad","semi","semi","čtečka + příjemka párovaná s PO","dodávka"),
+    P("stock","Vychystání a balení","manual","semi","pick-list z WMS, štítek automaticky","vychystání"),
+    P("stock","Objednání dopravy a tisk štítků","manual","auto","API dopravců (Zásilkovna, PPL, DPD, GLS)","zabaleno"),
+    P("own","Výrobní zakázka z objednávky","manual","auto","OMS → výrobní plán (ERP/MES)","potvrzená objednávka"),
+    P("own","Konfigurace vlastního výrobku zákazníkem","manual","auto","online konfigurátor s cenou a termínem","zákazník na webu"),
+    P("own","Výpočet termínu dodání z kapacity výroby","manual","auto","plánovací algoritmus","realtime"),
+    P("own","Hlášení dokončení výroby → sklad","manual","auto","čtečka / MES → příjem ve WMS","dokončení zakázky"),
+    P("drop","Import katalogu a skladu dropship dodavatele","manual","auto","feed / API dodavatele","cron 15 min"),
+    P("drop","Předání objednávky dodavateli","manual","auto","API / EDI / automatický e-mail s potvrzením","směrovač"),
+    P("drop","Převzetí trackingu od dodavatele","manual","auto","webhook / feed → notifikace zákazníka","odeslání dodavatelem"),
+    P("drop","Kontrola a párování faktur dodavatele","manual","auto","ISDOC / OCR párování s objednávkou","příchozí faktura"),
+    P("drop","Skrytí produktů nedostupných u dodavatele","manual","auto","feed → skrýt / označit „na dotaz“","cron 15 min")
+  ];
+}
+
+function buildDefault(){
+  uid=1;state=emptyState();
+  state.diagrams.logic=buildDefaultLogic();
+  state.diagrams.screens=buildDefaultScreens();
+  state.process=buildDefaultProcess();
+  pans={logic:{x:30,y:20,z:0.72},screens:{x:30,y:30,z:0.85}};
+}
+
+/* ============ GEOMETRIE UZLŮ ============ */
+const W=220,HDH=30,Y0=6,PR=24,SUBH=19;
+const BLOCK_H={hdr:8,hero:18,grid:18,filters:14,gallery:22,avail:8,cta:9,list:16,form:14,summary:14,steps:8,table:16,tabs:8,config:20,map:16,footer:6};
+function nodeRows(n){const T=TYPES[n.type];return Math.max(T.ins.length,T.outs.length,1);}
+function hasSub(n){return true;}
+function wireH(n){if(!TYPES[n.type].wire)return 0;const b=n.params.blocks||[];if(!b.length)return 0;
+  return 8+12+2+b.reduce((s,k)=>s+(BLOCK_H[k]||10),0)+(b.length-1)*3;}
+function hdOff(n){return HDH+SUBH+wireH(n);}
+function nodeH(n){return hdOff(n)+Y0+nodeRows(n)*PR+10;}
+function inPort(n,i){return {x:n.x,y:n.y+hdOff(n)+Y0+i*PR+PR/2};}
+function outPort(n,j){return {x:n.x+W,y:n.y+hdOff(n)+Y0+j*PR+PR/2};}
+
+/* ============ RENDER ============ */
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");}
+function wireHTML(n){const b=n.params.blocks||[];if(!b.length)return "";
+  const bx=(cls,h)=>`<span class="bx ${cls||""}" style="height:${h}px"></span>`;
+  const rows=b.map(k=>{const h=BLOCK_H[k]||10;switch(k){
+    case "hdr":return `<div class="wb">${bx("dk w1",h)}${bx("",h)}${bx("w1",h)}</div>`;
+    case "hero":return `<div class="wb">${bx("dk",h)}</div>`;
+    case "grid":return `<div class="wb col"><span class="wb">${bx("",8)}${bx("",8)}${bx("",8)}</span><span class="wb">${bx("",8)}${bx("",8)}${bx("",8)}</span></div>`;
+    case "filters":return `<div class="wb">${bx("dk w1",h)}${bx("ln",h)}</div>`;
+    case "gallery":return `<div class="wb">${bx("dk w2",h)}${bx("ln",h)}</div>`;
+    case "avail":return `<div class="wb">${bx("ac w2",h)}<span class="cap" style="align-self:center">termín dodání</span></div>`;
+    case "cta":return `<div class="wb"><span style="flex:1"></span>${bx("ac w2",h)}</div>`;
+    case "list":return `<div class="wb col">${bx("ln",4)}${bx("ln",4)}${bx("ln",4)}</div>`;
+    case "form":return `<div class="wb col">${bx("ln",6)}${bx("ln",6)}</div>`;
+    case "summary":return `<div class="wb">${bx("ln",h)}${bx("dk w1",h)}</div>`;
+    case "steps":return `<div class="wb">${bx("ac",h)}${bx("",h)}${bx("",h)}</div>`;
+    case "table":return `<div class="wb col">${bx("dk",4)}${bx("ln",4)}${bx("ln",4)}</div>`;
+    case "tabs":return `<div class="wb">${bx("dk w1",h)}${bx("ln w1",h)}${bx("ln w1",h)}<span style="flex:1"></span></div>`;
+    case "config":return `<div class="wb">${bx("ln w2",h)}<span class="wb col" style="flex:1">${bx("ln",5)}${bx("ln",5)}${bx("ac",5)}</span></div>`;
+    case "map":return `<div class="wb">${bx("dk",h)}</div>`;
+    case "footer":return `<div class="wb">${bx("",h)}${bx("",h)}${bx("",h)}</div>`;
+    default:return `<div class="wb">${bx("",h)}</div>`;}}).join("");
+  return `<div class="wire">${rows}</div>`;
+}
+function render(){
+  const d=D();const nodesEl=document.getElementById("nodes");nodesEl.innerHTML="";
+  d.nodes.forEach(n=>{
+    const T=TYPES[n.type];const el=document.createElement("div");const a=n.params.auto;
+    el.className="node"+(sel&&sel.k==="n"&&sel.id===n.id?" sel":"")+(a==="manual"?" a-manual":a==="semi"?" a-semi":"")+(T.auto===null?" sink":"");
+    el.style.left=n.x+"px";el.style.top=n.y+"px";el.dataset.id=n.id;
+    let html=`<div class="hd" data-drag="${n.id}"><span class="cdot" style="background:${CAT[T.cat].color}"></span><span class="nm" title="${esc(n.name)}">${esc(n.name)}</span></div>`;
+    if(T.wire){html+=`<div class="sub"><span class="mf">${esc(n.params.url||"obrazovka")}</span></div>`+wireHTML(n);}
+    else{html+=`<div class="sub"><span class="mf">${esc(n.params.system||T.label)}</span>`;
+      if(a)html+=`<span class="dot">·</span><span class="abadge ${a}">${AUTO_LBL[a]}</span>`;html+=`</div>`;}
+    html+=`<div class="bd">`;
+    const rows=nodeRows(n);
+    for(let r=0;r<rows;r++){
+      const inL=T.ins[r], out=T.outs[r];
+      html+=`<div class="prow">`;
+      if(inL!==undefined)html+=`<span class="port pin" data-port-in="${n.id}:in${r}" title="${esc(inL)}"></span><span class="plabel">${esc(inL)}</span>`;
+      if(out)html+=`<span class="plabel o">${esc(out[1])}</span><span class="port pout" data-port-out="${n.id}:${out[0]}" title="${esc(out[1])}"></span>`;
+      html+=`</div>`;
+    }
+    html+=`</div>`;
+    if(n.params.note&&!T.wire)html+=`<div class="note">${esc(n.params.note)}</div>`;
+    el.innerHTML=html;nodesEl.appendChild(el);
+  });
+  renderEdges();updateKPI();
+  document.getElementById("viewport").style.transform=`translate(${pan().x}px,${pan().y}px) scale(${pan().z})`;
+}
+function edgePts(e){
+  const d=D();const a=d.nodes.find(n=>n.id===e.from),b=d.nodes.find(n=>n.id===e.to);
+  if(!a||!b)return null;
+  const j=TYPES[a.type].outs.findIndex(o=>o[0]===e.fp);
+  let i=0;if(e.tp&&e.tp.startsWith("in")&&e.tp.length>2)i=parseInt(e.tp.slice(2))||0;
+  return {p1:outPort(a,j<0?0:j),p2:inPort(b,i)};
+}
+function pathD(p1,p2){const dx=Math.max(60,Math.abs(p2.x-p1.x)*0.45);
+  return {d:`M ${p1.x} ${p1.y} C ${p1.x+dx} ${p1.y}, ${p2.x-dx} ${p2.y}, ${p2.x} ${p2.y}`,
+    mid:{x:(p1.x+3*(p1.x+dx)+3*(p2.x-dx)+p2.x)/8,y:(p1.y+3*p1.y+3*p2.y+p2.y)/8}};}
+function renderEdges(){
+  const svg=document.getElementById("edges");
+  let html=`<defs>${Object.keys(EDGE_TYPES).map(t=>`<marker id="arr-${t}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--e-${t})"/></marker>`).join("")}
+    <marker id="arr-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#fff"/></marker></defs>`;
+  if(showZones)(D().zones||[]).forEach(z=>{html+=`<rect class="zone" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" fill="${z.color}" stroke="${z.color}"></rect><text class="zlbl" x="${z.x+16}" y="${z.y+22}" fill="${z.color}">${esc(z.label)}</text>`;});
+  const showLbl=pan().z>=0.55;
+  D().edges.forEach(e=>{
+    const pt=edgePts(e);if(!pt)return;
+    const {d,mid}=pathD(pt.p1,pt.p2);const isSel=sel&&sel.k==="e"&&sel.id===e.id;const t=e.etype||"data";
+    html+=`<path class="edgehit" d="${d}" data-edge="${e.id}"></path><path class="edge t-${t}${isSel?" sel":""}" d="${d}" data-edge="${e.id}" marker-end="url(#arr-${isSel?"sel":t})"></path>`;
+    if(t==="goods"||t==="money")html+=`<path class="flow" d="${d}"></path>`;
+    if(e.label&&(showLbl||isSel))html+=`<text class="elbl${isSel?" sel":""}" x="${mid.x}" y="${mid.y-6}">${esc(e.label)}</text>`;
+  });
+  svg.innerHTML=html;
+}
+function updateKPI(){
+  const L=state.diagrams.logic;const counted=L.nodes.filter(n=>n.params.auto);
+  const auto=counted.filter(n=>n.params.auto==="auto").length, semi=counted.filter(n=>n.params.auto==="semi").length, man=counted.filter(n=>n.params.auto==="manual").length;
+  const pct=counted.length?Math.round((auto+semi*0.5)/counted.length*100):0;
+  document.getElementById("kpiNodes").textContent=D().nodes.length;
+  document.getElementById("kpiEdges").textContent=D().edges.length;
+  document.getElementById("kpiAuto").textContent=pct+" %";
+  document.getElementById("kpiManual").textContent=man+(semi?" +"+semi+"½":"");
+  document.getElementById("tabLogicCnt").textContent=L.nodes.length;
+  document.getElementById("tabScreenCnt").textContent=state.diagrams.screens.nodes.length;
+  document.getElementById("tabProcCnt").textContent=state.process.length;
+}
+function renderLegend(){
+  const el=document.getElementById("legend");
+  const zt=`<div class="li" style="cursor:pointer;color:var(--tx)" onclick="toggleZones()">${showZones?"☑":"☐"} zobrazit oblasti</div><div class="li" style="color:var(--tx3)">popisky vazeb se ukáží po přiblížení</div>`;
+  if(dg==="screens"){el.innerHTML=`<b>Obrazovky</b><div class="li"><span class="sw" style="border-color:var(--e-nav)"></span>navigace / akce uživatele</div><div class="li" style="color:var(--tx3)">šedé bloky = rozvržení stránky</div>${zt}`;return;}
+  el.innerHTML=`<b>Vazby</b>
+    <div class="li"><span class="sw" style="border-color:var(--e-data)"></span>data (API, feed, sync)</div>
+    <div class="li"><span class="sw" style="border-color:var(--e-goods)"></span>zboží (fyzický tok)</div>
+    <div class="li"><span class="sw" style="border-color:var(--e-money)"></span>peníze</div>
+    <div class="li"><span class="sw ev" style="border-color:var(--e-event)"></span>událost / spouštěč</div>
+    <b style="margin-top:4px">Bloky</b>
+    <div class="li"><span class="abadge auto">⚙ AUTO</span>bez lidského zásahu</div>
+    <div class="li"><span class="abadge semi">◐ POLO</span>člověk jen výjimky</div>
+    <div class="li"><span class="abadge manual">✋ RUČNĚ</span>lidská práce → odbourat</div>${zt}`;
+}
+
+/* ============ INTERAKCE ============ */
+const canvas=document.getElementById("canvas");
+let drag=null, conn=null, panning=null, showZones=true;
+function toggleZones(){showZones=!showZones;render();renderLegend();}
+function toVP(ev){const r=canvas.getBoundingClientRect();const p=pan();
+  return {x:(ev.clientX-r.left-p.x)/p.z,y:(ev.clientY-r.top-p.y)/p.z};}
+function applyPan(){const p=pan();document.getElementById("viewport").style.transform=`translate(${p.x}px,${p.y}px) scale(${p.z})`;}
+function near(el,attr){const x=el&&el.closest?el.closest("["+attr+"]"):null;return x?x.getAttribute(attr):null;}
+canvas.addEventListener("mousedown",ev=>{
+  const dragId=near(ev.target,"data-drag"), outP=near(ev.target,"data-port-out"), edgeId=near(ev.target,"data-edge");
+  if(outP){const [nid,port]=outP.split(":");conn={from:nid,fp:port};
+    const tmp=document.createElementNS("http://www.w3.org/2000/svg","path");
+    tmp.setAttribute("class","edge");tmp.setAttribute("id","tmpedge");tmp.style.pointerEvents="none";document.getElementById("edges").appendChild(tmp);
+    ev.preventDefault();return;}
+  if(dragId){const n=D().nodes.find(x=>x.id===dragId);const m=toVP(ev);
+    drag={id:dragId,ox:m.x-n.x,oy:m.y-n.y};select("n",dragId);ev.preventDefault();return;}
+  if(edgeId){select("e",edgeId);return;}
+  if(ev.target===canvas||ev.target.id==="viewport"||ev.target.id==="nodes"||ev.target.id==="edges"){
+    panning={x:ev.clientX-pan().x,y:ev.clientY-pan().y};select(null);}
+});
+window.addEventListener("mousemove",ev=>{
+  if(drag){const m=toVP(ev);const n=D().nodes.find(x=>x.id===drag.id);
+    n.x=Math.round(m.x-drag.ox);n.y=Math.round(m.y-drag.oy);render();}
+  else if(conn){const m=toVP(ev);const a=D().nodes.find(n=>n.id===conn.from);
+    const j=TYPES[a.type].outs.findIndex(o=>o[0]===conn.fp);const p1=outPort(a,j<0?0:j);
+    const tmp=document.getElementById("tmpedge");if(tmp)tmp.setAttribute("d",pathD(p1,m).d);}
+  else if(panning){pan().x=ev.clientX-panning.x;pan().y=ev.clientY-panning.y;applyPan();}
+});
+window.addEventListener("mouseup",ev=>{
+  if(conn){const tmp=document.getElementById("tmpedge");if(tmp)tmp.remove();
+    const inP=near(document.elementFromPoint(ev.clientX,ev.clientY)||ev.target,"data-port-in");
+    if(inP){const [nid,port]=inP.split(":");
+      if(nid!==conn.from){const e=newEdge(conn.from,conn.fp,nid,port);D().edges.push(e);sel={k:"e",id:e.id};persist();}}
+    conn=null;render();inspect();}
+  if(drag)persist();
+  drag=null;panning=null;
+});
+canvas.addEventListener("wheel",ev=>{ev.preventDefault();
+  const r=canvas.getBoundingClientRect();const mx=ev.clientX-r.left,my=ev.clientY-r.top;const p=pan();
+  const old=p.z;p.z=Math.min(2,Math.max(0.3,p.z*(ev.deltaY<0?1.1:0.9)));
+  p.x=mx-(mx-p.x)*(p.z/old);p.y=my-(my-p.y)*(p.z/old);applyPan();
+  if((old>=0.55)!==(p.z>=0.55))requestAnimationFrame(renderEdges);
+},{passive:false});
+window.addEventListener("keydown",ev=>{
+  const tag=document.activeElement.tagName;
+  if((ev.key==="Delete"||ev.key==="Backspace")&&sel&&tag!=="INPUT"&&tag!=="SELECT"&&tag!=="TEXTAREA"&&currentPage!=="process"){delSel();}
+});
+function delSel(){if(!sel)return;const d=D();
+  if(sel.k==="n"){d.nodes=d.nodes.filter(n=>n.id!==sel.id);d.edges=d.edges.filter(e=>e.from!==sel.id&&e.to!==sel.id);}
+  else d.edges=d.edges.filter(e=>e.id!==sel.id);
+  select(null);persist();}
+function select(k,id){sel=k?{k,id}:null;render();inspect();}
+let addOff=0;
+function addType(t){const p=pan();const x=(-p.x+260)/p.z+addOff%4*30,y=(-p.y+120)/p.z+addOff%4*30;addOff++;
+  const n=newNode(t,Math.round(x),Math.round(y));D().nodes.push(n);select("n",n.id);persist();}
+function addScreen(kind){const P=SCREEN_PRESETS.find(p=>p[0]===kind);const p=pan();const x=(-p.x+260)/p.z+addOff%4*30,y=(-p.y+120)/p.z+addOff%4*30;addOff++;
+  const n=newNode("screen",Math.round(x),Math.round(y));n.name=P[1];n.params.kind=kind;n.params.blocks=[...P[2]];n.params.url="/"+kind;
+  D().nodes.push(n);select("n",n.id);persist();}
+function duplicateSel(){if(!sel||sel.k!=="n")return;const n=D().nodes.find(x=>x.id===sel.id);if(!n)return;
+  const c=JSON.parse(JSON.stringify(n));c.id="n"+(uid++);c.x+=30;c.y+=30;c.name+=" (kopie)";D().nodes.push(c);select("n",c.id);persist();}
+function fitView(){const d=D();if(!d.nodes.length)return;
+  const zs=showZones?(d.zones||[]):[];
+  const minX=Math.min(...d.nodes.map(n=>n.x),...zs.map(z=>z.x)),minY=Math.min(...d.nodes.map(n=>n.y),...zs.map(z=>z.y));
+  const maxX=Math.max(...d.nodes.map(n=>n.x+W),...zs.map(z=>z.x+z.w)),maxY=Math.max(...d.nodes.map(n=>n.y+nodeH(n)+40),...zs.map(z=>z.y+z.h));
+  const r=canvas.getBoundingClientRect();const z=Math.min(2,Math.max(0.3,Math.min((r.width-60)/(maxX-minX),(r.height-90)/(maxY-minY))));
+  const p=pan();p.z=z;p.x=(r.width-(maxX-minX)*z)/2-minX*z;p.y=(r.height-(maxY-minY)*z)/2-minY*z+16;applyPan();renderEdges();}
+
+/* ============ PALETA ============ */
+function buildPalette(){
+  const el=document.getElementById("palette");let h="";
+  if(dg==="screens"){
+    h+=`<div class="pgroup">Obrazovky e-shopu</div>`;
+    SCREEN_PRESETS.forEach(([k,label,blocks])=>{h+=`<div class="pitem" onclick="addScreen('${k}')"><span class="pdot" style="background:var(--screen)"></span><div><b>${label}</b><small>${blocks.map(b=>BLOCKS[b].split(" ")[0]).join(" · ")}</small></div></div>`;});
+    h+=`<div class="pgroup">Tip</div><div class="card">Vyber obrazovku a v inspektoru zapni/vypni bloky rozvržení. Tažením z portu <b>→ přechod</b> na jinou obrazovku kreslíš navigaci; popisek vazby = akce uživatele.</div>`;
+  }else{
+    PALETTE_LOGIC.forEach(([g,arr])=>{h+=`<div class="pgroup">${g}</div>`;
+      arr.forEach(t=>{const T=TYPES[t];h+=`<div class="pitem" onclick="addType('${t}')"><span class="pdot" style="background:${CAT[T.cat].color}"></span><div><b>${T.label}</b><small>${T.desc}</small></div></div>`;});});
+    h+=`<div class="pgroup">Další</div>
+      <div class="pitem" onclick="setPage('process')"><span class="pdot" style="background:var(--warn)"></span><div><b>Procesy & automatizace</b><small>seznam lidských kroků</small></div></div>
+      <div class="pitem" onclick="setPage('screens')"><span class="pdot" style="background:var(--screen)"></span><div><b>Obrazovky</b><small>drátěnky stránek</small></div></div>`;
+  }
+  el.innerHTML=h;
+}
+
+/* ============ INSPEKTOR ============ */
+function inspect(){
+  const el=document.getElementById("insp");let h="";
+  if(!sel){
+    h+=`<div class="ititle">${dg==="screens"?"Obrazovky e-shopu":"Logika e-shopu"}</div>
+      <div class="empty" style="margin-top:8px">Vyber blok nebo vazbu na plátně.<br><br>
+      Z palety vlevo přidáváš bloky, taháním z výstupního portu (vpravo) na vstupní (vlevo) vytváříš vazby. Klávesa <b>Delete</b> maže, kolečko myši zoomuje, tažením prázdné plochy posouváš.</div>`;
+    if(dg==="logic"){
+      const L=state.diagrams.logic;const man=L.nodes.filter(n=>n.params.auto==="manual"),semi=L.nodes.filter(n=>n.params.auto==="semi");
+      h+=`<div class="isub">Tři zdroje zboží</div>
+        <div class="card"><b style="color:var(--front)">Vlastní výrobky</b> — objednávka automaticky založí výrobní zakázku; termín z kapacity výroby.<br>
+        <b style="color:var(--supply)">Zboží na sklad</b> — WMS hlídá minima, nákup objednává sám, expedice přes API dopravců.<br>
+        <b style="color:var(--integ)">Dropshipping</b> — objednávka odchází dodavateli API/EDI, tracking se vrací webhookem, faktura se páruje automaticky.</div>`;
+      h+=`<div class="isub">Lidská práce v modelu</div>`;
+      if(!man.length&&!semi.length)h+=`<div class="card">Žádný blok není označen jako ruční. 🎉</div>`;
+      man.forEach(n=>{h+=`<div class="linkrow" onclick="select('n','${n.id}')"><span class="abadge manual">✋</span>${esc(n.name)}</div>`;});
+      semi.forEach(n=>{h+=`<div class="linkrow" onclick="select('n','${n.id}')"><span class="abadge semi">◐</span>${esc(n.name)}</div>`;});
+    }
+    h+=`<div class="isub">Projekt</div>
+      <label class="f"><span>Název modelu</span><input class="in" value="${esc(state.meta.name)}" oninput="state.meta.name=this.value;persist()"></label>
+      <label class="f"><span>Autor</span><input class="in" value="${esc(state.meta.author)}" oninput="state.meta.author=this.value;persist()"></label>`;
+    el.innerHTML=h;return;
+  }
+  if(sel.k==="e"){el.innerHTML=edgeForm();return;}
+  const n=D().nodes.find(x=>x.id===sel.id);if(!n){el.innerHTML=h;return;}
+  const T=TYPES[n.type],p=n.params;
+  h+=`<div class="ititle"><span style="color:${CAT[T.cat].color}">■</span> ${T.label}</div><div style="font-size:11px;color:var(--tx3);margin-bottom:10px">${CAT[T.cat].label}</div>`;
+  h+=`<label class="f"><span>Název bloku</span><input class="in" value="${esc(n.name)}" oninput="upd('name',this.value)"></label>`;
+  if(T.wire){
+    h+=`<label class="f"><span>URL / cesta</span><input class="in" value="${esc(p.url)}" oninput="updp('url',this.value)"></label>`;
+    h+=`<div class="isub">Bloky rozvržení (klikni pro zapnutí)</div><div class="chips">`;
+    Object.keys(BLOCKS).forEach(k=>{h+=`<span class="chip ${(p.blocks||[]).includes(k)?'on':''}" onclick="toggleBlock('${k}')">${BLOCKS[k]}</span>`;});
+    h+=`</div><div style="font-size:10.5px;color:var(--tx3);margin-top:6px">Pořadí = pořadí zapnutí. Vypni a zapni znovu pro přesun na konec.</div>`;
+    h+=`<label class="f" style="margin-top:12px"><span>Klíčové prvky / poznámka</span><textarea class="in" oninput="updp('note',this.value)">${esc(p.note)}</textarea></label>`;
+  }else{
+    if(T.auto!==null){
+      h+=`<div class="isub">Míra automatizace</div><div class="chips">`;
+      ["auto","semi","manual"].forEach(a=>{h+=`<span class="chip ${a} ${p.auto===a?'on':''}" onclick="updp('auto','${a}')">${AUTO_LBL[a]}</span>`;});
+      h+=`</div>`;
+    }
+    h+=`<div class="isub">Realizace</div>
+      <label class="f"><span>Systém / nástroj</span><input class="in" value="${esc(p.system)}" placeholder="např. PIM, ERP, Balíkobot…" oninput="updp('system',this.value)"></label>
+      <label class="f"><span>Způsob integrace</span><select class="in" onchange="updp('api',this.value)"><option value="">—</option>${API_OPTS.map(o=>`<option ${p.api===o?'selected':''}>${o}</option>`).join("")}</select></label>
+      <label class="f"><span>Odpovědná role (jen výjimky)</span><input class="in" value="${esc(p.owner)}" placeholder="např. skladník, obchod…" oninput="updp('owner',this.value)"></label>
+      <label class="f"><span>SLA / četnost</span><input class="in" value="${esc(p.sla)}" placeholder="např. realtime, 1×/h, do 24 h" oninput="updp('sla',this.value)"></label>
+      <label class="f"><span>Poznámka (zobrazí se v bloku)</span><textarea class="in" oninput="updp('note',this.value)">${esc(p.note)}</textarea></label>`;
+  }
+  // vazby
+  const ins=D().edges.filter(e=>e.to===n.id),outs=D().edges.filter(e=>e.from===n.id);
+  const nm=id=>{const x=D().nodes.find(z=>z.id===id);return x?x.name:"?";};
+  h+=`<div class="isub">Vstupy (${ins.length})</div>`;
+  ins.forEach(e=>{h+=`<div class="linkrow" onclick="select('e','${e.id}')"><span class="sw" style="border-color:var(--e-${e.etype||'data'})"></span>${esc(nm(e.from))}${e.label?` <span style="color:var(--tx3)">· ${esc(e.label)}</span>`:""}</div>`;});
+  h+=`<div class="isub">Výstupy (${outs.length})</div>`;
+  outs.forEach(e=>{h+=`<div class="linkrow" onclick="select('e','${e.id}')"><span class="sw" style="border-color:var(--e-${e.etype||'data'})"></span>${esc(nm(e.to))}${e.label?` <span style="color:var(--tx3)">· ${esc(e.label)}</span>`:""}</div>`;});
+  h+=`<div class="irow"><button class="btn" onclick="duplicateSel()">Duplikovat</button><button class="btn danger" onclick="delSel()">Smazat blok</button></div>`;
+  el.innerHTML=h;
+}
+function edgeForm(){
+  const e=D().edges.find(x=>x.id===sel.id);if(!e)return "";
+  const nm=id=>{const x=D().nodes.find(z=>z.id===id);return x?x.name:"?";};
+  let h=`<div class="ititle">Vazba</div><div style="font-size:11px;color:var(--tx2);margin-bottom:10px">${esc(nm(e.from))} <span style="color:var(--tx3)">→</span> ${esc(nm(e.to))}</div>`;
+  h+=`<label class="f"><span>Popisek (co teče)</span><input class="in" value="${esc(e.label)}" placeholder="např. objednávka, tracking, faktura" oninput="upde('label',this.value)"></label>`;
+  h+=`<div class="isub">Typ vazby</div><div class="chips">`;
+  Object.keys(EDGE_TYPES).forEach(t=>{if(dg==="logic"&&t==="nav")return;if(dg==="screens"&&t!=="nav"&&t!=="event"&&t!=="data")return;
+    h+=`<span class="chip ${e.etype===t?'on':''}" style="${e.etype===t?`background:var(--e-${t});border-color:var(--e-${t});color:#0b0d12`:''}" onclick="upde('etype','${t}')">${EDGE_TYPES[t]}</span>`;});
+  h+=`</div>`;
+  if(dg==="logic")h+=`<label class="f" style="margin-top:12px"><span>Spouštěč</span><select class="in" onchange="upde('trigger',this.value)">${TRIGGERS.map(t=>`<option ${e.trigger===t?'selected':''}>${t}</option>`).join("")}</select></label>
+    <label class="f"><span>Formát / payload</span><input class="in" value="${esc(e.payload)}" placeholder="např. JSON objednávky, XML feed, ISDOC" oninput="upde('payload',this.value)"></label>`;
+  h+=`<label class="f"><span>Poznámka</span><textarea class="in" oninput="upde('note',this.value)">${esc(e.note)}</textarea></label>`;
+  h+=`<div class="irow"><button class="btn danger" onclick="delSel()">Smazat vazbu</button></div>`;
+  return h;
+}
+function upd(k,v){const n=D().nodes.find(x=>x.id===sel.id);if(!n)return;n[k]=v;render();persist();}
+function updp(k,v){const n=D().nodes.find(x=>x.id===sel.id);if(!n)return;n.params[k]=v;render();if(k==="auto")inspect();persist();}
+function upde(k,v){const e=D().edges.find(x=>x.id===sel.id);if(!e)return;e[k]=v;render();if(k==="etype")inspect();persist();}
+function toggleBlock(k){const n=D().nodes.find(x=>x.id===sel.id);if(!n)return;const b=n.params.blocks||(n.params.blocks=[]);
+  const i=b.indexOf(k);if(i<0)b.push(k);else b.splice(i,1);render();inspect();persist();}
+
+/* ============ STRÁNKY ============ */
+function setPage(pg){
+  currentPage=pg;
+  document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.page===pg));
+  const canvasPg=pg==="logic"||pg==="screens";
+  document.getElementById("pgCanvas").classList.toggle("on",canvasPg);
+  document.getElementById("pgProcess").classList.toggle("on",pg==="process");
+  document.getElementById("pgHelp").classList.toggle("on",pg==="help");
+  if(canvasPg){if(dg!==pg){dg=pg;sel=null;}buildPalette();renderLegend();render();inspect();
+    document.getElementById("hint").textContent=pg==="screens"
+      ?"Klikni na obrazovku v paletě → přidá se · táhni z portu „→ přechod“ na jinou obrazovku → navigace · kolečko = zoom"
+      :"Klikni na blok v paletě → přidá se na plátno · táhni z výstupního portu (vpravo) na vstupní (vlevo) → vazba · kolečko = zoom · Delete maže";}
+  else if(pg==="process")renderProcessPage();
+  else if(pg==="help")renderHelpPage();
+}
+
+/* ============ PROCESY & AUTOMATIZACE ============ */
+let procFilter="all";
+function procStats(rows){const s={now:{auto:0,semi:0,manual:0},target:{auto:0,semi:0,manual:0}};
+  rows.forEach(r=>{s.now[r.now]=(s.now[r.now]||0)+1;s.target[r.target]=(s.target[r.target]||0)+1;});
+  const pct=o=>rows.length?Math.round((o.auto+o.semi*0.5)/rows.length*100):0;
+  return {...s,pctNow:pct(s.now),pctTarget:pct(s.target)};}
+function renderProcessPage(){
+  const el=document.getElementById("pgProcess");
+  const rows=procFilter==="all"?state.process:state.process.filter(r=>r.flow===procFilter);
+  const st=procStats(state.process);
+  const bar=o=>`<div class="bar"><i style="width:${o.auto/state.process.length*100}%;background:var(--acc)"></i><i style="width:${o.semi/state.process.length*100}%;background:var(--warn)"></i><i style="width:${o.manual/state.process.length*100}%;background:var(--bad)"></i></div>`;
+  let h=`<div class="pgHead"><div><h2>Procesy &amp; automatizace</h2><div class="sub">Každý krok, kde dnes pracuje člověk, a jak ho v novém e-shopu odbouráme. Tabulku můžeš upravovat.</div></div>
+    <div class="ctrls"><button class="btn" onclick="addProcRow()">＋ Přidat krok</button><button class="btn" onclick="exportProcCSV()">Export CSV</button></div></div>`;
+  h+=`<div class="sumBar">
+    <div class="sumBox"><b style="color:var(--bad)">${st.pctNow} %</b><span>automatizace dnes</span>${bar(st.now)}</div>
+    <div class="sumBox"><b style="color:var(--acc)">${st.pctTarget} %</b><span>automatizace cíl</span>${bar(st.target)}</div>
+    <div class="sumBox"><b>${st.now.manual} → ${st.target.manual}</b><span>ručních kroků dnes → cíl</span></div>
+    <div class="sumBox"><b>${st.now.semi} → ${st.target.semi}</b><span>polo-automatických dnes → cíl</span></div>
+    <div class="sumBox"><b>${state.process.length}</b><span>kroků celkem</span></div></div>`;
+  h+=`<div class="flowTabs"><button class="${procFilter==='all'?'on':''}" onclick="procFilter='all';renderProcessPage()">Vše (${state.process.length})</button>`;
+  Object.keys(FLOW_LBL).forEach(f=>{h+=`<button class="${procFilter===f?'on':''}" onclick="procFilter='${f}';renderProcessPage()">${FLOW_LBL[f]} (${state.process.filter(r=>r.flow===f).length})</button>`;});
+  h+=`</div>`;
+  const sel_=(r,k)=>`<select class="${r[k]}" onchange="updProc('${r.id}','${k}',this.value)"><option value="auto" ${r[k]==='auto'?'selected':''}>⚙ auto</option><option value="semi" ${r[k]==='semi'?'selected':''}>◐ polo</option><option value="manual" ${r[k]==='manual'?'selected':''}>✋ ručně</option></select>`;
+  h+=`<div style="overflow:auto"><table class="proc"><thead><tr><th>#</th><th>Tok</th><th style="min-width:260px">Krok procesu</th><th>Dnes</th><th>Cíl</th><th style="min-width:260px">Nástroj / integrace</th><th style="min-width:150px">Spouštěč</th><th></th></tr></thead><tbody>`;
+  rows.forEach((r,i)=>{h+=`<tr><td class="num">${i+1}</td>
+    <td><select onchange="updProc('${r.id}','flow',this.value)">${Object.keys(FLOW_LBL).map(f=>`<option value="${f}" ${r.flow===f?'selected':''}>${FLOW_LBL[f]}</option>`).join("")}</select></td>
+    <td><input value="${esc(r.step)}" oninput="updProc('${r.id}','step',this.value,true)"></td>
+    <td>${sel_(r,'now')}</td><td>${sel_(r,'target')}</td>
+    <td><input value="${esc(r.tool)}" oninput="updProc('${r.id}','tool',this.value,true)"></td>
+    <td><input value="${esc(r.trigger)}" oninput="updProc('${r.id}','trigger',this.value,true)"></td>
+    <td><button class="del" onclick="delProc('${r.id}')">×</button></td></tr>`;});
+  h+=`</tbody></table></div>`;
+  el.innerHTML=h;updateKPI();
+}
+function updProc(id,k,v,quiet){const r=state.process.find(x=>x.id===id);if(!r)return;r[k]=v;persist();if(!quiet)renderProcessPage();}
+function addProcRow(){state.process.push({id:"p"+(uid++),flow:procFilter==="all"?"common":procFilter,step:"Nový krok",now:"manual",target:"auto",tool:"",trigger:""});persist();renderProcessPage();}
+function delProc(id){state.process=state.process.filter(x=>x.id!==id);persist();renderProcessPage();}
+function exportProcCSV(){const rows=[["Tok","Krok","Dnes","Cíl","Nástroj","Spouštěč"]].concat(state.process.map(r=>[FLOW_LBL[r.flow],r.step,r.now,r.target,r.tool,r.trigger]));
+  const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="eshop_procesy.csv";a.click();}
+
+/* ============ NÁPOVĚDA ============ */
+function renderHelpPage(){
+  document.getElementById("pgHelp").innerHTML=`<div class="pgHead"><div><h2>Jak číst a upravovat model</h2><div class="sub">Model má tři vrstvy: logiku (systémy a toky), obrazovky (co vidí zákazník) a procesy (co dělá člověk).</div></div></div>
+  <div class="helpGrid">
+    <div class="helpBox"><h3>🧩 Logika e-shopu</h3>Každý blok je systém nebo proces, každá vazba říká <b>co</b> mezi nimi teče a <b>kdy</b> (spouštěč).
+      <ul><li><span style="color:var(--e-data)">modrá</span> = data (API, feed, synchronizace)</li><li><span style="color:var(--e-goods)">oranžová</span> = fyzické zboží</li><li><span style="color:var(--e-money)">zelená</span> = peníze</li><li><span style="color:var(--e-event)">fialová čárkovaná</span> = událost, která něco spustí</li></ul>
+      Čti zleva doprava: zákazník → web → košík → OMS → <b>směrovač</b> → tři zdroje zboží → expedice → doručení.</div>
+    <div class="helpBox"><h3>🔀 Směrovač = srdce logiky</h3>Jedna objednávka může obsahovat položky ze tří zdrojů. Směrovač ji rozpadne na dílčí zásilky:
+      <ol><li><b>vlastní výrobek</b> → výrobní zakázka → po dokončení příjem na sklad → expedice</li><li><b>zboží skladem</b> → pick-list ve WMS → expedice</li><li><b>dropship</b> → objednávka odchází dodavateli (API/EDI) → dodavatel posílá přímo zákazníkovi, tracking se vrací webhookem</li></ol>
+      Zákazník vidí termín u každé položky už na webu (dostupnostní engine) a při více zdrojích ví, že přijde více zásilek.</div>
+    <div class="helpBox"><h3>✋ Odbourání lidské práce</h3>Bloky mají tři stavy: <span class="abadge auto">⚙ AUTO</span> <span class="abadge semi">◐ POLO</span> <span class="abadge manual">✋ RUČNĚ</span>.
+      Ruční bloky svítí červeně a počítají se v hlavičce. Cílem je, aby člověk řešil jen výjimky (reklamace mimo limit, eskalace od AI asistenta).
+      Detailní seznam kroků včetně nástroje a spouštěče je v záložce <b>Procesy &amp; automatizace</b>.</div>
+    <div class="helpBox"><h3>🖥 Obrazovky</h3>Každá obrazovka má mini-drátěnku z bloků (hlavička, mřížka, formulář…). Zapínáš je v inspektoru. Vazby mezi obrazovkami = kliknutí uživatele.
+      Klíčové obrazovky nového e-shopu: detail produktu se <b>3 režimy dostupnosti</b>, konfigurátor vlastního výrobku, jednokrokový checkout, B2B portál s ceníky a hromadným importem, samoobslužná vratka.</div>
+    <div class="helpBox"><h3>✏️ Úpravy</h3><ul><li>klik v paletě přidá blok, tažením za hlavičku ho přesuneš</li><li>táhni z pravého portu na levý port jiného bloku = vazba</li><li>klik na blok/vazbu otevře inspektor; <code>Delete</code> maže</li><li>kolečko myši = zoom, tažení prázdné plochy = posun</li><li>vše se ukládá automaticky do prohlížeče; <b>Uložit JSON</b> stáhne soubor, <b>Načíst JSON</b> ho vrátí</li><li><b>Výchozí model</b> obnoví navržený stav, <b>Zkontrolovat model</b> najde nezapojené bloky</li></ul></div>
+    <div class="helpBox"><h3>🧱 Doporučená architektura</h3><ul><li><b>PIM</b> jako jediný zdroj produktových dat (vlastní + dodavatelé)</li><li><b>OMS</b> drží stavy objednávek; ERP dostává data synchronizací, nikdo nic nepřepisuje</li><li><b>Dostupnostní engine</b> spojuje WMS, plán výroby a feedy dropship dodavatelů</li><li><b>API dopravců</b> (Balíkobot apod.) místo ručního tisku štítků</li><li><b>AI agent</b> generuje obsah a odpovídá zákazníkům z dat OMS</li><li>vše event-driven: webhooky místo ručního „zkontroluj a přepiš“</li></ul></div>
+  </div>`;
+}
+
+/* ============ KONTROLA MODELU ============ */
+function autoLayoutCheck(){
+  const d=D();const issues=[];
+  d.nodes.forEach(n=>{const T=TYPES[n.type];const ins=d.edges.filter(e=>e.to===n.id).length,outs=d.edges.filter(e=>e.from===n.id).length;
+    if(T.ins.length&&!ins&&T.auto!==null&&n.type!=="customer")issues.push(`„${n.name}“ nemá žádný vstup`);
+    if(T.outs.length&&!outs&&T.auto!==null)issues.push(`„${n.name}“ nemá žádný výstup`);
+    if(n.params.auto==="manual")issues.push(`„${n.name}“ je ruční krok — navrhni automatizaci`);});
+  if(dg==="logic")d.edges.forEach(e=>{if(!e.label)issues.push("vazba bez popisku ("+e.id+")");});
+  if(!issues.length){toast("✔ Model je kompletní: každý blok je zapojený, žádný ruční krok.");return;}
+  alert("Kontrola modelu — "+issues.length+" nálezů:\n\n• "+issues.slice(0,25).join("\n• ")+(issues.length>25?"\n…":""));
+}
+
+/* ============ PERSISTENCE ============ */
+const STORAGE_KEY="eshop_model_v1";
+let persistT=null;
+function persist(){clearTimeout(persistT);persistT=setTimeout(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify({state,pans,uid}));}catch(e){}updateKPI();},150);}
+function restore(){try{const s=localStorage.getItem(STORAGE_KEY);if(!s)return false;const d=JSON.parse(s);
+  if(!d.state||!d.state.diagrams)return false;state=d.state;pans=d.pans||pans;uid=d.uid||9999;migrate();return true;}catch(e){return false;}}
+function migrate(){["logic","screens"].forEach(k=>{const d=state.diagrams[k];if(!d.zones){const def=k==="logic"?buildDefaultLogic().zones:buildDefaultScreens().zones;d.zones=def;}});}
+function saveProj(){const data=JSON.stringify({state,pans,uid},null,1);
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:"application/json"}));
+  a.download="eshop_model.json";a.click();}
+function loadProj(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
+  if(!d.state||!d.state.diagrams)throw 0;state=d.state;pans=d.pans||pans;uid=d.uid||9999;migrate();sel=null;render();inspect();persist();toast("Model načten.");}catch(e){alert("Chyba souboru.");}};r.readAsText(f);}
+function resetDefault(){if(!confirm("Obnovit výchozí navržený model? Tvoje úpravy se přepíší."))return;buildDefault();sel=null;setPage(currentPage==="help"?"logic":currentPage);persist();toast("Výchozí model obnoven.");}
+function clearCanvas(){if(!confirm("Vyčistit aktuální plátno ("+(dg==="logic"?"logika":"obrazovky")+")?"))return;D().nodes=[];D().edges=[];sel=null;render();inspect();persist();}
+async function shareProj(){
+  try{const r=await fetch("/api/share",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({name:state.meta.name,author:state.meta.author,nodes:D().nodes,edges:D().edges,metadata:{state,pans,uid}})});
+    if(!r.ok)throw 0;const j=await r.json();const url=location.origin+location.pathname+"?shared="+j.id;
+    try{await navigator.clipboard.writeText(url);}catch(e){}
+    prompt("Odkaz na sdílený model (zkopírován do schránky):",url);
+  }catch(e){alert("Sdílení vyžaduje běžící server (server.js). Použij „Uložit JSON“.");}
+}
+async function loadShared(id){try{const r=await fetch("/api/share/"+id);if(!r.ok)throw 0;const p=await r.json();
+  if(p.metadata&&p.metadata.state){state=p.metadata.state;pans=p.metadata.pans||pans;uid=p.metadata.uid||9999;toast("Načten sdílený model „"+p.name+"“.");return true;}}catch(e){}return false;}
+function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2600);}
+
+/* ============ START ============ */
+(async function(){
+  const sharedId=new URLSearchParams(location.search).get("shared");
+  let ok=false;
+  if(sharedId)ok=await loadShared(sharedId);
+  if(!ok&&!restore())buildDefault();
+  setPage("logic");
+})();
+</script>
+</body>
+</html>
