@@ -381,7 +381,7 @@ function buildDefaultLogic(){
   const N=(t,x,y,name,p)=>{const n=newNode(t,x,y);if(name)n.name=name;if(p)Object.assign(n.params,p);nodes.push(n);return n;};
   const E=(a,ap,b,bi,label,etype,extra)=>{edges.push(Object.assign(newEdge(a.id,ap,b.id,"in"+bi),{label,etype:etype||"data"},extra||{}));};
   // sloupce
-  const A=20,B=280,C=540,D_=800,E_=1060,F=1320,G=1580,H=1840,I=2100;
+  const A=20,B=360,C=700,D_=1040,E_=1380,F=1720,G=2060,H=2400,I=2740;
   const ai=N("ai",A,20,"AI agent (obsah)",{system:"LLM API",note:"popisy, překlady, SEO, odpovědi na dotazy"});
   const pim=N("pim",B,20,"PIM – produktová data",{system:"PIM / e-shop admin",note:"vlastní výrobky + zboží na sklad + dropship sortiment"});
   const pricing=N("pricing",C,20,"Cenotvorba",{system:"cenová pravidla",note:"nákupní cena + marže dle zdroje; B2B ceníky; akce"});
@@ -389,29 +389,29 @@ function buildDefaultLogic(){
   const search=N("search",E_,20,"Vyhledávání & doporučení",{system:"fulltext + AI"});
   const analytics=N("analytics",F,20,"Analytika / BI",{system:"GA4 + BI",note:"prodeje, marže dle zdroje, prognóza poptávky"});
 
-  const channel=N("channel",A,262,"Heureka · Zboží · Google",{system:"XML feedy",api:"XML/CSV feed"});
-  const b2c=N("customer",A,410,"Zákazník B2C");
-  const b2b=N("customer",A,615,"Zákazník B2B (firmy, obce)");
-  const web=N("web",B,330,"Storefront shop.elkoplast.cz",{system:"nový e-shop",note:"responzivní, rychlý, SEO; dostupnost a termín u každé položky"});
-  const account=N("account",B,615,"Účet / B2B portál",{system:"nový e-shop",note:"individuální ceníky, hromadná objednávka, faktury, opakovaný nákup"});
-  const cart=N("cart",C,330,"Košík & checkout",{note:"1 krok; doprava a platba dle složení košíku (více zdrojů = více zásilek)"});
-  const pay=N("payment",D_,330,"Platební brána",{system:"Comgate / GoPay",api:"Webhook",note:"B2B: platba fakturou se splatností"});
-  const oms=N("oms",E_,330,"OMS – řízení objednávek",{system:"nový e-shop / ERP",note:"stavy, rozpad na dílčí zásilky, žádné ruční přepisy"});
-  const router=N("router",F,330,"Směrovač objednávky",{note:"pravidla: položka skladem → WMS; vlastní výrobek → výroba; dropship → dodavatel"});
-  const invoicing=N("invoicing",D_,615,"Fakturace & doklady",{system:"ERP",note:"faktura při expedici, dobropis při vratce"});
-  const notify=N("notify",C,615,"Notifikace zákazníka",{system:"e-mail / SMS",note:"přijato · zaplaceno · ve výrobě · expedováno · doručeno"});
+  const channel=N("channel",A,300,"Heureka · Zboží · Google",{system:"XML feedy",api:"XML/CSV feed"});
+  const b2c=N("customer",A,505,"Zákazník B2C");
+  const b2b=N("customer",A,760,"Zákazník B2B (firmy, obce)");
+  const web=N("web",B,400,"Storefront shop.elkoplast.cz",{system:"nový e-shop",note:"responzivní, rychlý, SEO; dostupnost a termín u každé položky"});
+  const account=N("account",B,760,"Účet / B2B portál",{system:"nový e-shop",note:"individuální ceníky, hromadná objednávka, faktury, opakovaný nákup"});
+  const cart=N("cart",C,400,"Košík & checkout",{note:"1 krok; doprava a platba dle složení košíku (více zdrojů = více zásilek)"});
+  const pay=N("payment",D_,400,"Platební brána",{system:"Comgate / GoPay",api:"Webhook",note:"B2B: platba fakturou se splatností"});
+  const oms=N("oms",E_,400,"OMS – řízení objednávek",{system:"nový e-shop / ERP",note:"stavy, rozpad na dílčí zásilky, žádné ruční přepisy"});
+  const router=N("router",F,400,"Směrovač objednávky",{note:"pravidla: položka skladem → WMS; vlastní výrobek → výroba; dropship → dodavatel"});
+  const invoicing=N("invoicing",D_,760,"Fakturace & doklady",{system:"ERP",note:"faktura při expedici, dobropis při vratce"});
+  const notify=N("notify",C,760,"Notifikace zákazníka",{system:"e-mail / SMS",note:"přijato · zaplaceno · ve výrobě · expedováno · doručeno"});
 
-  const production=N("production",G,60,"Vlastní výroba",{system:"ERP / MES",note:"výrobní zakázka vzniká automaticky z objednávky"});
-  const wms=N("wms",G,320,"Sklad / WMS",{system:"WMS + čtečky",note:"jediný stav zásob pro web i ERP"});
-  const dropship=N("dropship",G,600,"Dropship dodavatel",{system:"API / EDI / feed",api:"REST API",note:"objednávka odchází automaticky; tracking zpět webhookem"});
-  const purchasing=N("purchasing",H,60,"Nákup na sklad",{system:"ERP",note:"auto-PO při poklesu pod minimum + prognóza"});
-  const supplier=N("supplier",I,60,"Dodavatel (na sklad)",{api:"E-mail (automat)"});
-  const shipping=N("shipping",H,320,"Expedice & dopravci",{system:"Balíkobot / API dopravců",api:"REST API",note:"štítek + svoz bez lidského zásahu"});
-  const delivery=N("delivery",I,320,"Doručení zákazníkovi");
-  const returns=N("returns",I,600,"Vratky & reklamace",{note:"samoobslužný formulář; refundace do limitu automaticky"});
-  const support=N("support",A,815,"Zákaznický servis",{system:"AI asistent",note:"odpovídá z dat OMS a trackingu; člověk jen eskalace"});
-  const crm=N("crm",C,815,"CRM & marketing automat",{system:"e-mailing / CRM"});
-  const erp=N("erp",E_,815,"ERP / účetnictví",{system:"Pohoda / ABRA / Helios",api:"Databáze / sync"});
+  const production=N("production",G,80,"Vlastní výroba",{system:"ERP / MES",note:"výrobní zakázka vzniká automaticky z objednávky"});
+  const wms=N("wms",G,430,"Sklad / WMS",{system:"WMS + čtečky",note:"jediný stav zásob pro web i ERP"});
+  const dropship=N("dropship",G,830,"Dropship dodavatel",{system:"API / EDI / feed",api:"REST API",note:"objednávka odchází automaticky; tracking zpět webhookem"});
+  const purchasing=N("purchasing",H,80,"Nákup na sklad",{system:"ERP",note:"auto-PO při poklesu pod minimum + prognóza"});
+  const supplier=N("supplier",I,80,"Dodavatel (na sklad)",{api:"E-mail (automat)"});
+  const shipping=N("shipping",H,430,"Expedice & dopravci",{system:"Balíkobot / API dopravců",api:"REST API",note:"štítek + svoz bez lidského zásahu"});
+  const delivery=N("delivery",I,430,"Doručení zákazníkovi");
+  const returns=N("returns",I,830,"Vratky & reklamace",{note:"samoobslužný formulář; refundace do limitu automaticky"});
+  const support=N("support",A,1030,"Zákaznický servis",{system:"AI asistent",note:"odpovídá z dat OMS a trackingu; člověk jen eskalace"});
+  const crm=N("crm",C,1030,"CRM & marketing automat",{system:"e-mailing / CRM"});
+  const erp=N("erp",E_,1030,"ERP / účetnictví",{system:"Pohoda / ABRA / Helios",api:"Databáze / sync"});
 
   // datová vrstva
   E(ai,"out",pim,2,"popisy, překlady, SEO texty","data",{trigger:"při změně stavu"});
@@ -469,12 +469,12 @@ function buildDefaultLogic(){
   E(analytics,"insight",crm,1,"segmenty, RFM");
   E(crm,"campaign",channel,0,"kampaně, remarketing","event",{trigger:"cron (pravidelně)"});
   const zones=[
-    {x:0,y:-10,w:1545,h:215,label:"1 · Datová vrstva — produkty · ceny · dostupnost · obsah",color:"var(--core)"},
-    {x:0,y:215,w:1545,h:345,label:"2 · Cesta zákazníka → objednávka → platba → směrovač",color:"var(--front)"},
-    {x:0,y:570,w:1545,h:410,label:"3 · Doklady · notifikace · servis · marketing · ERP",color:"var(--integ)"},
-    {x:1560,y:-10,w:790,h:250,label:"4a · Vlastní výroba + nákup na sklad",color:"var(--supply)"},
-    {x:1560,y:250,w:790,h:290,label:"4b · Sklad → expedice → doručení",color:"var(--fulfil)"},
-    {x:1560,y:550,w:790,h:405,label:"4c · Dropship (přímo zákazníkovi) · vratky",color:"var(--integ)"}
+    {x:-20,y:-30,w:2020,h:290,label:"1 · Datová vrstva — produkty · ceny · dostupnost · obsah",color:"var(--core)"},
+    {x:-20,y:260,w:2020,h:430,label:"2 · Cesta zákazníka → objednávka → platba → směrovač",color:"var(--front)"},
+    {x:-20,y:690,w:2020,h:530,label:"3 · Doklady · notifikace · servis · marketing · ERP",color:"var(--integ)"},
+    {x:2020,y:-30,w:960,h:350,label:"4a · Vlastní výroba + nákup na sklad",color:"var(--supply)"},
+    {x:2020,y:320,w:960,h:390,label:"4b · Sklad → expedice → doručení",color:"var(--fulfil)"},
+    {x:2020,y:710,w:960,h:510,label:"4c · Dropship (přímo zákazníkovi) · vratky",color:"var(--integ)"}
   ];
   return {nodes,edges,zones};
 }
@@ -485,24 +485,24 @@ function buildDefaultScreens(){
   const S=(kind,x,y,url,note)=>{const P=SCREEN_PRESETS.find(p=>p[0]===kind);const n=newNode("screen",x,y);n.name=P[1];
     n.params.kind=kind;n.params.blocks=[...P[2]];n.params.url=url||"";n.params.note=note||"";nodes.push(n);return n;};
   const E=(a,b,label)=>edges.push(Object.assign(newEdge(a.id,"nav",b.id,"in0"),{label,etype:"nav"}));
-  const home=S("home",20,260,"/","USP: vlastní výroba · skladem ihned · široký sortiment partnerů");
-  const cat=S("category",280,260,"/kategorie/…","filtr dle dostupnosti: skladem / na objednávku / z výroby");
-  const prod=S("product",540,200,"/produkt/…","3 režimy dostupnosti s termínem: skladem · vyrobíme do X dnů · odesílá partner do Y dnů");
-  const conf=S("configurator",540,520,"/konfigurator/…","vlastní výrobky: rozměr, barva, potisk → cena + termín okamžitě");
-  const cart=S("cart",800,260,"/kosik","upozornění: položky z více zdrojů = více zásilek");
-  const chk=S("checkout",1060,260,"/pokladna","1 krok; B2B: faktura se splatností; uložené adresy");
-  const thanks=S("thanks",1320,260,"/dekujeme","shrnutí + předpokládané termíny per zásilka");
-  const track=S("tracking",1580,260,"/sledovani/…","stav per dílčí zásilka (sklad / výroba / partner)");
-  const acc=S("account",1320,560,"/ucet","objednávky, faktury, adresy, opakovaný nákup");
-  const b2b=S("b2b",20,560,"/b2b","individuální ceníky, hromadný import košíku (CSV), splatnost");
-  const ret=S("returns",1580,560,"/vratka","samoobslužná vratka bez telefonování");
+  const home=S("home",20,300,"/","USP: vlastní výroba · skladem ihned · široký sortiment partnerů");
+  const cat=S("category",360,300,"/kategorie/…","filtr dle dostupnosti: skladem / na objednávku / z výroby");
+  const prod=S("product",700,240,"/produkt/…","3 režimy dostupnosti s termínem: skladem · vyrobíme do X dnů · odesílá partner do Y dnů");
+  const conf=S("configurator",700,700,"/konfigurator/…","vlastní výrobky: rozměr, barva, potisk → cena + termín okamžitě");
+  const cart=S("cart",1040,300,"/kosik","upozornění: položky z více zdrojů = více zásilek");
+  const chk=S("checkout",1380,300,"/pokladna","1 krok; B2B: faktura se splatností; uložené adresy");
+  const thanks=S("thanks",1720,300,"/dekujeme","shrnutí + předpokládané termíny per zásilka");
+  const track=S("tracking",2060,300,"/sledovani/…","stav per dílčí zásilka (sklad / výroba / partner)");
+  const acc=S("account",1720,740,"/ucet","objednávky, faktury, adresy, opakovaný nákup");
+  const b2b=S("b2b",20,740,"/b2b","individuální ceníky, hromadný import košíku (CSV), splatnost");
+  const ret=S("returns",2060,740,"/vratka","samoobslužná vratka bez telefonování");
   E(home,cat,"klik na kategorii");E(home,prod,"doporučený produkt");E(cat,prod,"klik na produkt");
   E(prod,conf,"upravit vlastní výrobek");E(conf,cart,"do košíku");E(prod,cart,"do košíku");
   E(cart,chk,"pokračovat");E(chk,thanks,"odeslat objednávku");E(thanks,track,"sledovat zásilku");
   E(thanks,acc,"můj účet");E(acc,ret,"vrátit zboží");E(b2b,cat,"katalog s mými cenami");E(b2b,cart,"hromadný import");E(acc,track,"detail objednávky");
   const zones=[
-    {x:0,y:170,w:1830,h:290,label:"Hlavní nákupní cesta — domů → kategorie → detail → košík → checkout → potvrzení → sledování",color:"var(--front)"},
-    {x:0,y:480,w:1830,h:260,label:"Vedlejší cesty — B2B portál · konfigurátor vlastního výrobku · účet · vratka",color:"var(--screen)"}
+    {x:-20,y:200,w:2340,h:380,label:"Hlavní nákupní cesta — domů → kategorie → detail → košík → checkout → potvrzení → sledování",color:"var(--front)"},
+    {x:-20,y:600,w:2340,h:380,label:"Vedlejší cesty — B2B portál · konfigurátor vlastního výrobku · účet · vratka",color:"var(--screen)"}
   ];
   return {nodes,edges,zones};
 }
@@ -546,7 +546,7 @@ function buildDefault(){
   state.diagrams.logic=buildDefaultLogic();
   state.diagrams.screens=buildDefaultScreens();
   state.process=buildDefaultProcess();
-  pans={logic:{x:30,y:20,z:0.72},screens:{x:30,y:30,z:0.85}};
+  pans={logic:{x:30,y:20,z:0.55},screens:{x:30,y:30,z:0.62}};
 }
 
 /* ============ GEOMETRIE UZLŮ ============ */
