@@ -858,7 +858,7 @@ function addProcRow(){state.process.push({id:"p"+(uid++),flow:procFilter==="all"
 function delProc(id){state.process=state.process.filter(x=>x.id!==id);persist();renderProcessPage();}
 function exportProcCSV(){const rows=[["Tok","Krok","Dnes","Cíl","Nástroj","Spouštěč"]].concat(state.process.map(r=>[FLOW_LBL[r.flow],r.step,r.now,r.target,r.tool,r.trigger]));
   const csv="﻿"+rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(";")).join("\n");
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([csv],{type:"text/csv"}));a.download="eshop_procesy.csv";a.click();}
+  downloadFile("eshop_procesy.csv",csv,"text/csv");}
 
 /* ============ NÁPOVĚDA ============ */
 function renderHelpPage(){
@@ -899,9 +899,13 @@ function persist(){clearTimeout(persistT);persistT=setTimeout(()=>{try{localStor
 function restore(){try{const s=localStorage.getItem(STORAGE_KEY);if(!s)return false;const d=JSON.parse(s);
   if(!d.state||!d.state.diagrams)return false;state=d.state;pans=d.pans||pans;uid=d.uid||9999;migrate();return true;}catch(e){return false;}}
 function migrate(){["logic","screens"].forEach(k=>{const d=state.diagrams[k];if(!d.zones){const def=k==="logic"?buildDefaultLogic().zones:buildDefaultScreens().zones;d.zones=def;}});}
-function saveProj(){const data=JSON.stringify({state,pans,uid},null,1);
-  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:"application/json"}));
-  a.download="eshop_model.json";a.click();}
+// Uložení souboru: v prohlížeči artefaktů claude.ai přes schopnost „downloads“, jinde klasické stažení
+async function downloadFile(name,data,mime){
+  try{if(window.claude&&typeof window.claude.use==="function"){const dl=await window.claude.use("downloads");
+    if(dl){await dl.save({filename:name,data});toast("Soubor „"+name+"“ uložen.");return;}}}
+  catch(e){if(e&&e.code==="declined")return;}
+  const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([data],{type:mime}));a.download=name;a.click();}
+function saveProj(){downloadFile("eshop_model.json",JSON.stringify({state,pans,uid},null,1),"application/json");}
 function loadProj(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
   if(!d.state||!d.state.diagrams)throw 0;state=d.state;pans=d.pans||pans;uid=d.uid||9999;migrate();sel=null;render();inspect();persist();toast("Model načten.");}catch(e){alert("Chyba souboru.");}};r.readAsText(f);}
 function resetDefault(){if(!confirm("Obnovit výchozí navržený model? Tvoje úpravy se přepíší."))return;buildDefault();sel=null;setPage(currentPage==="help"?"logic":currentPage);persist();toast("Výchozí model obnoven.");}
