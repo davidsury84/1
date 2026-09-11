@@ -30,26 +30,46 @@ Cíl: člověk řeší jen výjimky.
 - táhni z pravého portu na levý port jiného bloku = vazba; klik na vazbu → popisek, typ, spouštěč
 - klik na blok → inspektor (název, systém, integrace, automatizace, poznámka)
 - `Delete` maže, kolečko = zoom, tažení prázdné plochy = posun, **Zarovnat pohled** = vše na obrazovku
-- vše se ukládá automaticky do prohlížeče (`localStorage`); **Uložit JSON** / **Načíst JSON** pro přenos; **Výchozí model** obnoví návrh
+- vše se ukládá automaticky do prohlížeče (`localStorage`); **☁ Sdílené modely** ukládá na server pro kolegy; **Uložit JSON** / **Načíst JSON** pro přenos souborem; **Výchozí model** obnoví návrh
 - **Zkontrolovat model** najde nezapojené bloky, ruční kroky a vazby bez popisku
 - v Procesech: **Export CSV**
 
-## Lokální spuštění se serverem (sdílení odkazem)
+## Spolupráce více lidí (sdílené modely)
+
+Tlačítko **☁ Sdílené modely** v hlavičce (nebo `Ctrl+S`) ukládá plátno na server. Model uložený na
+server vidí a může upravovat každý kolega s přístupem: otevře ho ze seznamu, upraví, uloží změny.
+Kdo uloží později, přepíše dřívější verzi; pokud mezitím uložil někdo jiný, aplikace to pozná
+(server vrátí 409) a nabídne přepsat, nebo načíst jejich verzi. Čip v hlavičce ukazuje přihlášeného
+uživatele, napojený model a stav „uloženo / neuloženo“.
+
+Endpointy: `POST /api/share` (nový), `PUT /api/share/:id` (přepis, s `baseUpdatedAt` pro detekci
+konfliktu), `GET /api/share/:id`, `GET /api/shared-list`, `DELETE /api/share/:id`, `GET /api/me`, `GET /health`.
+
+## Lokální spuštění se serverem
 
 ```bash
 cd eshop
 npm install
-npm start          # http://localhost:3000
+npm start          # http://localhost:3000  (bez INTRANET_SSO_SECRET běží otevřeně)
 ```
 
-Server servíruje HTML a poskytuje `POST /api/share`, `GET /api/share/:id`, `GET /api/shared-list`,
-`DELETE /api/share/:id`, `GET /health` (stejné jako u třídicí linky). Tlačítko **Sdílet odkaz** uloží model
-a vrátí URL `?shared=<id>`. S Railway Volume (`RAILWAY_VOLUME_MOUNT_PATH`) jsou sdílené modely trvalé.
+## Nasazení na Railway + napojení do intranetu
 
-## Nasazení na Railway
+Stejný vzor jako `tridici-linka-dvojce` (modul „Design třídicí linky“):
 
-Stejný postup jako `tridici-linka-dvojce`: New Project → Deploy from GitHub repo → Root directory `eshop`
-→ Nixpacks (Node 20) → Generate Domain. Healthcheck `/health`.
+1. **Railway**: New Project → Deploy from GitHub repo `davidsury84/1` → Settings → **Root Directory** `eshop`
+   → Nixpacks (Node 20) → Generate Domain (např. `eshop-model-production.up.railway.app`). Healthcheck `/health`.
+2. **Volume** (aby sdílené modely přežily redeploy): Settings → Volume → mount `/data`, 1 GB stačí.
+   Railway nastaví `RAILWAY_VOLUME_MOUNT_PATH`, server ho použije automaticky.
+3. **SSO z intranetu**: v této službě nastav `INTRANET_SSO_SECRET` = stejná hodnota jako `SSO_SHARED_SECRET`
+   v intranetu (volitelně `INTRANET_URL`, výchozí `https://intranet.elkoplast.cz`). Od té chvíle pustí aplikace
+   jen zaměstnance přihlášené přes intranet a u sdílených modelů se ukládá jejich jméno.
+4. **Intranet** (repo `mobilnirozhlas`): modul `eshopmodel` „Model e-shopu“ (menu Kalkulačky, dlaždice,
+   matice přístupů) a trasa `/eshop-model-app`, která přesměruje sem s krátkodobým `?sso=` tokenem.
+   V intranetové službě nastav `ESHOP_MODEL_APP_URL` = adresa z kroku 1. Správce pak v matici přístupů
+   zapne modul „Model e-shopu“ kolegům, kteří mají spolupracovat.
+
+Bez `INTRANET_SSO_SECRET` běží aplikace otevřeně (lokální vývoj) — kdo má odkaz, vidí a upravuje.
 
 ## Struktura
 

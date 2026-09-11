@@ -190,6 +190,24 @@
   .helpBox li{margin-bottom:3px}
   .helpBox code{font-family:var(--mono);font-size:11px;background:var(--bg);padding:1px 5px;border-radius:4px;color:var(--tx)}
 
+  .cloudChip{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx2);padding:6px 10px;border:1px solid var(--line);border-radius:8px;
+    max-width:300px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;background:var(--bg3)}
+  .cloudChip:hover{border-color:var(--acc)}
+  .cloudChip .st{font-family:var(--mono);font-size:10px}
+  .cloudChip .st.ok{color:var(--acc)}.cloudChip .st.dirty{color:var(--warn)}.cloudChip .st.off{color:var(--tx3)}
+  .modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:40}
+  .modal.show{display:flex}
+  .mbox{background:var(--bg2);border:1px solid var(--line2);border-radius:12px;width:min(760px,94vw);max-height:88vh;overflow:auto;padding:18px 20px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+  .mhead{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;gap:10px}
+  .mhead h3{margin:0;font-size:15px}
+  .mhead .x{background:transparent;border:0;color:var(--tx3);font-size:20px;cursor:pointer}
+  .msub{font-size:11.5px;color:var(--tx2);margin-bottom:12px;line-height:1.5}
+  .mrow{display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+  .mrow.cur{background:rgba(57,211,180,.06);margin:0 -8px;padding:9px 8px;border-radius:6px}
+  .mrow b{font-size:13px}.mrow small{display:block;color:var(--tx3);font-size:11px;margin-top:2px}
+  .mrow .acts{display:flex;gap:6px}
+  .mform{display:flex;gap:8px;align-items:center;margin-top:14px;flex-wrap:wrap}
+  .mform input.in{flex:1;min-width:200px}
   .toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--bg3);border:1px solid var(--acc);color:var(--tx);
     padding:9px 16px;border-radius:9px;font-size:12px;z-index:50;opacity:0;transition:.25s;pointer-events:none}
   .toast.show{opacity:1}
@@ -203,12 +221,13 @@
       <button class="btn run" onclick="autoLayoutCheck()">✔ Zkontrolovat model</button>
       <button class="btn" onclick="saveProj()">Uložit JSON</button>
       <button class="btn" onclick="document.getElementById('loadf').click()">Načíst JSON</button>
-      <button class="btn" onclick="shareProj()">Sdílet odkaz</button>
+      <button class="btn" onclick="openShared()">☁ Sdílené modely</button>
       <button class="btn" onclick="fitView()">Zarovnat pohled</button>
       <button class="btn" onclick="resetDefault()">Výchozí model</button>
       <button class="btn danger" onclick="clearCanvas()">Vyčistit plátno</button>
       <input id="loadf" type="file" accept=".json" style="display:none" onchange="loadProj(this.files[0])">
     </div>
+    <div class="cloudChip" id="cloudChip" onclick="openShared()" title="Sdílený model na serveru"></div>
     <div class="yield">
       <div class="kpi"><b id="kpiNodes">0</b><span>bloků</span></div>
       <div class="kpi"><b id="kpiEdges">0</b><span>vazeb</span></div>
@@ -241,6 +260,7 @@
     <div class="page" id="pgHelp"></div>
   </div>
 </div>
+<div class="modal" id="modalShared" onclick="if(event.target===this)this.classList.remove('show')"><div class="mbox" id="sharedBody"></div></div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -895,9 +915,10 @@ function autoLayoutCheck(){
 /* ============ PERSISTENCE ============ */
 const STORAGE_KEY="eshop_model_v1";
 let persistT=null;
-function persist(){clearTimeout(persistT);persistT=setTimeout(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify({state,pans,uid}));}catch(e){}updateKPI();},150);}
+function persist(){clearTimeout(persistT);if(!dirty){dirty=true;renderCloudChip();}
+  persistT=setTimeout(()=>{try{localStorage.setItem(STORAGE_KEY,JSON.stringify({state,pans,uid,cloud,dirty}));}catch(e){}updateKPI();},150);}
 function restore(){try{const s=localStorage.getItem(STORAGE_KEY);if(!s)return false;const d=JSON.parse(s);
-  if(!d.state||!d.state.diagrams)return false;state=d.state;pans=d.pans||pans;uid=d.uid||9999;migrate();return true;}catch(e){return false;}}
+  if(!d.state||!d.state.diagrams)return false;state=d.state;pans=d.pans||pans;uid=d.uid||9999;cloud=d.cloud||null;dirty=!!d.dirty;migrate();return true;}catch(e){return false;}}
 function migrate(){["logic","screens"].forEach(k=>{const d=state.diagrams[k];if(!d.zones){const def=k==="logic"?buildDefaultLogic().zones:buildDefaultScreens().zones;d.zones=def;}});}
 // Uložení souboru: v prohlížeči artefaktů claude.ai přes schopnost „downloads“, jinde klasické stažení
 async function downloadFile(name,data,mime){
@@ -910,25 +931,72 @@ function loadProj(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{con
   if(!d.state||!d.state.diagrams)throw 0;state=d.state;pans=d.pans||pans;uid=d.uid||9999;migrate();sel=null;render();inspect();persist();toast("Model načten.");}catch(e){alert("Chyba souboru.");}};r.readAsText(f);}
 function resetDefault(){if(!confirm("Obnovit výchozí navržený model? Tvoje úpravy se přepíší."))return;buildDefault();sel=null;setPage(currentPage==="help"?"logic":currentPage);persist();toast("Výchozí model obnoven.");}
 function clearCanvas(){if(!confirm("Vyčistit aktuální plátno ("+(dg==="logic"?"logika":"obrazovky")+")?"))return;D().nodes=[];D().edges=[];sel=null;render();inspect();persist();}
-async function shareProj(){
-  try{const r=await fetch("/api/share",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({name:state.meta.name,author:state.meta.author,nodes:D().nodes,edges:D().edges,metadata:{state,pans,uid}})});
-    if(!r.ok)throw 0;const j=await r.json();const url=location.origin+location.pathname+"?shared="+j.id;
-    try{await navigator.clipboard.writeText(url);}catch(e){}
-    prompt("Odkaz na sdílený model (zkopírován do schránky):",url);
-  }catch(e){alert("Sdílení vyžaduje běžící server (server.js). Použij „Uložit JSON“.");}
-}
-async function loadShared(id){try{const r=await fetch("/api/share/"+id);if(!r.ok)throw 0;const p=await r.json();
-  if(p.metadata&&p.metadata.state){state=p.metadata.state;pans=p.metadata.pans||pans;uid=p.metadata.uid||9999;toast("Načten sdílený model „"+p.name+"“.");return true;}}catch(e){}return false;}
+/* ============ SDÍLENÉ MODELY (spolupráce přes server) ============ */
+let cloud=null;      // {id,name,updatedAt} — na který sdílený model je plátno napojené
+let dirty=false;     // neuložené změny oproti sdílené verzi
+let ME=null;         // {sso, employee:{email,name}} z /api/me; null = server nedostupný
+function fmtDate(iso){if(!iso)return "";const d=new Date(iso);return d.toLocaleDateString("cs-CZ")+" "+d.toLocaleTimeString("cs-CZ",{hour:"2-digit",minute:"2-digit"});}
+function authorName(){return (ME&&ME.employee&&(ME.employee.name||ME.employee.email))||state.meta.author||"";}
+async function api(path,opt){const r=await fetch(path,Object.assign({headers:{"Content-Type":"application/json"},cache:"no-store"},opt||{}));
+  if(r.status===401)throw new Error("Nepřihlášeno — otevři aplikaci přes intranet.");return r;}
+async function initCloud(){try{const r=await fetch("/api/me",{cache:"no-store"});if(r.ok){ME=await r.json();if(ME.employee&&!state.meta.author){state.meta.author=ME.employee.name||ME.employee.email;}}}catch(e){ME=null;}renderCloudChip();}
+function renderCloudChip(){const el=document.getElementById("cloudChip");if(!el)return;
+  const who=ME&&ME.employee?`<span style="color:var(--tx3)">👤 ${esc(ME.employee.name||ME.employee.email)}</span><span style="color:var(--line2)">·</span>`:"";
+  if(!ME){el.innerHTML=`<span class="st off">☁ offline</span><span>jen v tomto prohlížeči</span>`;return;}
+  if(!cloud){el.innerHTML=`${who}<span class="st off">☁</span><span>nesdíleno — klikni pro sdílení</span>`;return;}
+  el.innerHTML=`${who}<span class="st ${dirty?'dirty':'ok'}">${dirty?'● neuloženo':'✓ uloženo'}</span><span title="${esc(cloud.name)}">${esc(cloud.name)}</span>`;}
+async function openShared(){const box=document.getElementById("sharedBody");document.getElementById("modalShared").classList.add("show");
+  box.innerHTML=`<div class="mhead"><h3>☁ Sdílené modely</h3><button class="x" onclick="closeShared()">×</button></div><div class="msub">Načítám…</div>`;
+  let list=[];try{const r=await api("/api/shared-list");list=(await r.json()).projects||[];}
+  catch(e){box.innerHTML=`<div class="mhead"><h3>☁ Sdílené modely</h3><button class="x" onclick="closeShared()">×</button></div>
+    <div class="msub">Sdílení vyžaduje běžící server (nasazení na Railway / intranet). Zde běží aplikace jen lokálně — použij <b>Uložit JSON</b> a pošli soubor kolegům.<br><span style="color:var(--bad)">${esc(e.message)}</span></div>`;return;}
+  let h=`<div class="mhead"><h3>☁ Sdílené modely</h3><button class="x" onclick="closeShared()">×</button></div>
+    <div class="msub">Model uložený na server vidí a může upravovat každý kolega s přístupem. Otevři ho, uprav a ulož změny — kdo uloží později, přepíše dřívější verzi (aplikace tě upozorní, pokud mezitím někdo jiný uložil).</div>`;
+  if(cloud){h+=`<div class="card"><b>Aktuálně napojeno:</b> ${esc(cloud.name)} <span style="color:var(--tx3)">· poslední uložení ${fmtDate(cloud.updatedAt)}</span>
+    <div class="irow" style="margin-top:8px"><button class="btn run" onclick="saveCloud(false)">${dirty?'Uložit změny':'Uložit (beze změn)'}</button><button class="btn" onclick="copyCloudLink()">Kopírovat odkaz</button><button class="btn" onclick="detachCloud()">Odpojit</button></div></div>`;}
+  h+=`<div class="mform"><input class="in" id="newSharedName" placeholder="Název nového sdíleného modelu" value="${esc(cloud?cloud.name+' (kopie)':state.meta.name)}"><button class="btn" onclick="saveCloud(true)">＋ Uložit aktuální plátno jako nový</button></div>`;
+  h+=`<div class="isub" style="margin-top:16px">Na serveru (${list.length})</div>`;
+  if(!list.length)h+=`<div class="msub">Zatím žádný sdílený model. Ulož aktuální plátno tlačítkem výše.</div>`;
+  list.forEach(m=>{const cur=cloud&&cloud.id===m.id;
+    h+=`<div class="mrow ${cur?'cur':''}"><div><b>${esc(m.name)}</b>${cur?' <span class="abadge auto">otevřeno</span>':''}<small>${m.nodeCount} bloků · ${m.edgeCount} vazeb · založil ${esc(m.author)} · naposledy ${esc(m.updatedBy||m.author)} ${fmtDate(m.updatedAt)}</small></div>
+      <div class="acts"><button class="btn" onclick="openCloud('${m.id}')">Otevřít</button><button class="btn danger" onclick="deleteCloud('${m.id}','${esc(m.name).replace(/'/g,"&#39;")}')">Smazat</button></div></div>`;});
+  box.innerHTML=h;}
+function closeShared(){document.getElementById("modalShared").classList.remove("show");}
+async function openCloud(id){if(dirty&&cloud&&cloud.id!==id&&!confirm("Máš neuložené změny. Otevřít jiný model a zahodit je?"))return;
+  if(await loadShared(id)){closeShared();sel=null;setPage(currentPage==="help"?"logic":currentPage);persistQuiet();toast("Otevřen sdílený model „"+cloud.name+"“.");}else alert("Model se nepodařilo načíst.");}
+async function loadShared(id){try{const r=await api("/api/share/"+id);if(!r.ok)return false;const p=await r.json();
+  if(p.metadata&&p.metadata.state){state=p.metadata.state;pans=p.metadata.pans||pans;uid=p.metadata.uid||9999;migrate();
+    cloud={id:p.id||id,name:p.name,updatedAt:p.updatedAt||p.createdAt};dirty=false;state.meta.name=p.name;renderCloudChip();return true;}}catch(e){}return false;}
+async function saveCloud(asNew,force){
+  let name=cloud&&!asNew?cloud.name:(document.getElementById("newSharedName")||{}).value||state.meta.name;
+  if(asNew){name=(name||"").trim();if(!name){alert("Zadej název modelu.");return;}}
+  const body={name,author:authorName(),nodes:D().nodes,edges:D().edges,metadata:{state,pans,uid}};
+  if(!asNew&&cloud&&!force)body.baseUpdatedAt=cloud.updatedAt;
+  try{const r=await api(asNew||!cloud?"/api/share":"/api/share/"+cloud.id,{method:asNew||!cloud?"POST":"PUT",body:JSON.stringify(body)});
+    if(r.status===409){const j=await r.json();
+      if(confirm(j.error+"\n\nOK = přepsat jejich verzi mou\nZrušit = načíst jejich verzi (mé změny se zahodí)"))return saveCloud(false,true);
+      await loadShared(cloud.id);sel=null;setPage(currentPage==="help"?"logic":currentPage);persistQuiet();closeShared();return;}
+    if(!r.ok)throw new Error("HTTP "+r.status);const j=await r.json();
+    cloud={id:j.id,name:j.name||name,updatedAt:j.updatedAt};dirty=false;state.meta.name=cloud.name;renderCloudChip();persistQuiet();
+    toast("Uloženo na server: „"+cloud.name+"“.");if(document.getElementById("modalShared").classList.contains("show"))openShared();
+  }catch(e){alert("Uložení selhalo: "+e.message);}}
+async function deleteCloud(id,name){if(!confirm("Smazat sdílený model „"+name+"“ pro všechny?"))return;
+  try{await api("/api/share/"+id,{method:"DELETE"});if(cloud&&cloud.id===id){cloud=null;dirty=true;renderCloudChip();persistQuiet();}openShared();}catch(e){alert(e.message);}}
+function detachCloud(){cloud=null;dirty=true;renderCloudChip();persistQuiet();openShared();}
+async function copyCloudLink(){if(!cloud)return;const url=location.origin+location.pathname+"?shared="+cloud.id;try{await navigator.clipboard.writeText(url);toast("Odkaz zkopírován.");}catch(e){prompt("Odkaz:",url);}}
+function persistQuiet(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify({state,pans,uid,cloud,dirty}));}catch(e){}updateKPI();}
+window.addEventListener("keydown",ev=>{if((ev.ctrlKey||ev.metaKey)&&ev.key.toLowerCase()==="s"){ev.preventDefault();if(cloud)saveCloud(false);else openShared();}});
 function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove("show"),2600);}
 
 /* ============ START ============ */
 (async function(){
   const sharedId=new URLSearchParams(location.search).get("shared");
+  await initCloud();
   let ok=false;
-  if(sharedId)ok=await loadShared(sharedId);
+  if(sharedId){ok=await loadShared(sharedId);if(ok){try{history.replaceState(null,"",location.pathname);}catch(e){}}}
   if(!ok&&!restore())buildDefault();
-  setPage("logic");
+  if(ok)persistQuiet();
+  setPage("logic");renderCloudChip();
 })();
 </script>
 </body>
