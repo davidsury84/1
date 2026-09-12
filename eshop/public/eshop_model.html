@@ -51,6 +51,17 @@
   .page{position:absolute;inset:0;display:none;overflow:hidden}
   .page.on{display:block}
   #pgCanvas.on{display:grid;grid-template-columns:212px 1fr 326px}
+  /* celá plocha: boční panely zmizí a v případě potřeby se vysunou přes plátno */
+  body.panels-off #pgCanvas.on{grid-template-columns:1fr}
+  body.panels-off aside.palette,body.panels-off aside.insp{position:absolute;top:0;bottom:0;z-index:9;display:none;box-shadow:0 0 34px rgba(0,0,0,.55)}
+  body.panels-off aside.palette{left:0;width:212px}
+  body.panels-off aside.insp{right:0;width:326px}
+  body.panels-off.pal-open aside.palette{display:block}
+  body.panels-off.has-sel aside.insp{display:block}
+  .fab{display:none;position:absolute;left:14px;top:12px;z-index:8;font:600 11px/1 var(--sans);color:var(--tx2);
+    background:var(--bg2);border:1px solid var(--line);padding:7px 11px;border-radius:20px;cursor:pointer}
+  .fab:hover{color:var(--tx);border-color:var(--line2)}
+  body.panels-off .fab{display:block}
   #pgProcess.on,#pgHelp.on{display:flex;flex-direction:column;overflow:auto;padding:20px 28px}
 
   /* palette */
@@ -250,6 +261,7 @@
       <button class="btn" onclick="document.getElementById('loadf').click()">Načíst JSON</button>
       <button class="btn" onclick="openShared()">☁ Sdílené modely</button>
       <button class="btn" onclick="fitView()" title="Zarovnat pohled na celý model">⤢ Zarovnat</button>
+      <button class="btn" id="btnPanels" onclick="togglePanels()" title="Skrýt boční panely a využít celou plochu (paleta i inspektor se vysunou, když je potřebuješ)">⛶ Celá plocha</button>
       <button class="btn" onclick="resetDefault()">Výchozí model</button>
       <button class="btn danger" onclick="clearCanvas()">Vyčistit</button>
       <input id="loadf" type="file" accept=".json" style="display:none" onchange="loadProj(this.files[0])">
@@ -274,6 +286,7 @@
     <div class="page on" id="pgCanvas">
       <aside class="palette" id="palette"></aside>
       <div class="canvas" id="canvas">
+        <button class="fab" onclick="togglePal()" title="Paleta bloků">＋ Bloky</button>
         <div class="layers" id="layers"></div>
         <div class="hint" id="hint">Klikni na blok v paletě → přidá se na plátno · táhni z výstupního portu (vpravo) na vstupní (vlevo) → vazba · kolečko = zoom · Delete maže</div>
         <div class="legend" id="legend"></div>
@@ -351,6 +364,12 @@ const TYPES={
     outs:[["master","kmen produktů"],["cost","nákupní ceny a marže"],["stock","stav zásob"],["plan","plán a kapacita výroby"],
           ["mo","výrobní zakázka"],["pick","výdejka / pick-list"],["doc","faktura a doklady"],["bi","data pro BI"],["sync","synchronizace"]],
     auto:"auto"},
+  intranet:{label:"Intranet ELKOPLAST",cat:"integ",desc:"vstupní brána zaměstnanců, SSO, moduly",
+    ins:["data z e-shopu","exporty z Heliosu","požadavek zákazníka"],
+    outs:[["sso","přihlášení do modulů"],["task","úkol / požadavek"]],auto:"auto"},
+  smi:{label:"SMI — sklad, nákup a ceny",cat:"integ",desc:"optimalizace zásob, cenový model, požadavky nákupu",
+    ins:["přihlášení (SSO)","výdejky a faktury","ceny a sortiment z feedu","prodeje"],
+    outs:[["minmax","min/max a návrh objednávky"],["price","návrh přecenění"],["req","požadavek na nákup"]],auto:"semi"},
   crm:{label:"CRM & marketing automat",cat:"integ",desc:"segmenty, kampaně, remarketing",ins:["zákazníci","události"],outs:[["campaign","kampaně"]],auto:"auto"},
   analytics:{label:"Analytika / BI",cat:"integ",desc:"prodeje, prognózy, KPI",ins:["události / data"],outs:[["insight","reporty"],["forecast","prognóza"]],auto:"auto"},
   ai:{label:"AI agent",cat:"integ",desc:"obsah, překlady, podpora",ins:["zadání / data"],outs:[["out","výstup"]],auto:"auto"},
@@ -366,7 +385,7 @@ const PALETTE_LOGIC=[
   ["Jádro e-shopu",["pim","pricing","stock","search","payment","oms","invoicing"]],
   ["Zásobování",["production","purchasing","supplier","dropship","wms"]],
   ["Plnění objednávky",["shipping","notify","returns","support"]],
-  ["Integrace & data",["erp","crm","analytics","ai"]],
+  ["Integrace & data",["erp","intranet","smi","crm","analytics","ai"]],
   ["Logika",["router","rule","merge","manual"]]
 ];
 /* stavební bloky obrazovek (mini drátěnky) */
@@ -441,6 +460,12 @@ function buildDefaultLogic(){
   const support=N("support",A,1030,"Zákaznický servis",{system:"AI asistent",note:"odpovídá z dat OMS a Heliosu; člověk jen eskalace"});
   const crm=N("crm",C,1030,"CRM & marketing automat",{system:"e-mailing / CRM"});
 
+  /* ---- interní nástroje nad e-shopem a Heliosem ---- */
+  const intranet=N("intranet",E_,1330,"Intranet ELKOPLAST",{system:"intranet.elkoplast.cz",api:"REST API",
+    note:"Google SSO, moduly a přístupy; e-shop sem posílá prodeje, Helios exporty dokladů, zákazník reklamace"});
+  const smi=N("smi",F,1330,"SMI — sklad, nákup a ceny",{system:"SMI (modul E-shop v intranetu)",api:"REST API",
+    note:"min/max a návrh objednávek, cenový model a přecenění, požadavky nákupu; běží v intranetu přes SSO"});
+
   /* ---- tři zdroje zboží ---- */
   const production=N("production",G,80,"Vlastní výroba",{system:"Helios (výroba)",note:"výrobní zakázka vzniká automaticky z objednávky"});
   const purchasing=N("purchasing",H,80,"Nákup na sklad",{system:"Helios (nákup)",note:"auto-PO při poklesu pod minimum + prognóza"});
@@ -473,6 +498,19 @@ function buildDefaultLogic(){
   E(returns,"restock",helios,4,"vratka a dobropis");
   E(supplier,"feed",helios,5,"ceník a dodací listy");
   E(dropship,"track",helios,5,"faktura dodavatele","data",{trigger:"realtime / webhook"});
+
+  // ---- e-shop a Helios do intranetu, intranet do SMI ----
+  E(oms,"docs",intranet,0,"objednávky a prodeje e-shopu","data",{trigger:"cron (pravidelně)"});
+  E(helios,"sync",intranet,1,"exporty dokladů (výdejky, faktury)","data",{trigger:"cron (pravidelně)"});
+  E(b2c,"claim",intranet,2,"reklamace z veřejného formuláře","event");
+  E(intranet,"sso",smi,0,"přihlášení zaměstnance (SSO)","event");
+  E(intranet,"task",returns,0,"reklamace k vyřízení","event");
+  E(helios,"sync",smi,1,"výdejky a faktury k vyhodnocení","data",{trigger:"cron (pravidelně)"});
+  E(pim,"feeds",smi,2,"feed Shop.CZ — ceny a sortiment","data",{trigger:"cron (pravidelně)"});
+  E(analytics,"insight",smi,3,"prodeje e-shop vs. obchod");
+  E(smi,"minmax",purchasing,0,"min/max a návrh objednávky");
+  E(smi,"price",pricing,1,"návrh přecenění a marží");
+  E(smi,"req",purchasing,1,"požadavek nákupu (kolik kusů objednat)","event");
 
   // ---- data pro web ----
   E(ai,"out",pim,2,"popisy, překlady, SEO texty","data",{trigger:"při změně stavu"});
@@ -531,7 +569,8 @@ function buildDefaultLogic(){
     {x:-20,y:690,w:2020,h:530,label:"3 · Doklady · notifikace · servis · marketing",short:"3 · Doklady a servis",color:"var(--integ)"},
     {x:2540,y:-30,w:960,h:350,label:"4a · Vlastní výroba + nákup na sklad",short:"4a · Výroba a nákup",color:"var(--supply)"},
     {x:2540,y:320,w:960,h:390,label:"4b · Sklad → expedice → doručení",short:"4b · Sklad a expedice",color:"var(--fulfil)"},
-    {x:2540,y:710,w:960,h:510,label:"4c · Dropship (přímo zákazníkovi) · vratky",short:"4c · Dropship a vratky",color:"var(--integ)"}
+    {x:2540,y:710,w:960,h:510,label:"4c · Dropship (přímo zákazníkovi) · vratky",short:"4c · Dropship a vratky",color:"var(--integ)"},
+    {x:-20,y:1250,w:2500,h:380,label:"5 · Intranet ELKOPLAST — interní nástroje nad e-shopem a Heliosem",short:"5 · Intranet a SMI",color:"var(--logic)"}
   ];
   return {nodes,edges,zones};
 }
@@ -660,6 +699,19 @@ function layerVisible(n,d){const L=curLayer();if(L==null)return true;
   if(typeof drag!=="undefined"&&drag&&drag.id===n.id)return true;   // tažený blok nesmí zmizet pod rukou
   return nodeLayer(n,d)===L;}
 function visNodes(d){d=d||D();return d.nodes.filter(n=>layerVisible(n,d));}
+/* ============ CELÁ PLOCHA ============
+   Boční panely se schovají; paleta se vysune tlačítkem, inspektor sám, když je něco vybrané. */
+let panelsOff=false;
+function applyPanels(){
+  document.body.classList.toggle("panels-off",panelsOff);
+  const b=document.getElementById("btnPanels");
+  if(b){b.textContent=panelsOff?"▤ Panely":"⛶ Celá plocha";b.title=panelsOff?"Vrátit boční panely":"Skrýt boční panely a využít celou plochu";}
+  try{localStorage.setItem("em_panels",panelsOff?"1":"0")}catch(e){}
+  requestAnimationFrame(()=>renderEdges());
+}
+function togglePanels(){panelsOff=!panelsOff;if(!panelsOff)document.body.classList.remove("pal-open");applyPanels();}
+function togglePal(){document.body.classList.toggle("pal-open");}
+
 /* ============ PROKLIK ============
    Klik na text vazby (i na pahýl do jiné vrstvy) přenese pohled na protější blok:
    když leží v jiné vrstvě, přepne se vrstva, blok se vycentruje, vybere a zabliká. */
@@ -831,6 +883,7 @@ canvas.addEventListener("mousedown",ev=>{
     drag={id:dragId,ox:m.x-n.x,oy:m.y-n.y};select("n",dragId);ev.preventDefault();return;}
   if(edgeId){select("e",edgeId);return;}
   if(ev.target===canvas||ev.target.id==="viewport"||ev.target.id==="nodes"||ev.target.id==="edges"){
+    document.body.classList.remove("pal-open");
     panning={x:ev.clientX-pan().x,y:ev.clientY-pan().y};select(null);}
 });
 window.addEventListener("mousemove",ev=>{
@@ -912,6 +965,7 @@ function buildPalette(){
 /* ============ INSPEKTOR ============ */
 function inspect(){
   const el=document.getElementById("insp");let h="";
+  document.body.classList.toggle("has-sel",!!sel);
   if(!sel){
     h+=`<div class="ititle">${dg==="screens"?"Obrazovky e-shopu":"Logika e-shopu"}</div>
       <div class="empty" style="margin-top:8px">Vyber blok nebo vazbu na plátně.<br><br>
@@ -1068,6 +1122,10 @@ function renderHelpPage(){
       <b>Ven z Heliosu</b> jde kmen produktů do PIM, nákupní ceny do cenotvorby, stav zásob a plán výroby do dostupnostního enginu, výrobní zakázka do výroby, výdejka na sklad, faktura do dokladů a data do BI.
       <b>Do Heliosu</b> se vrací objednávka a její stavy z OMS, úhrada z platební brány, pohyby skladu, hlášení z výroby, vratky a dobropisy i doklady dodavatelů.
       E-shop tak není druhá evidence — je to výkladní skříň Heliosu. Vrstvu <i>0 · Helios (ERP)</i> si otevři v přepínači vrstev a uvidíš celé jeho rozhraní na jednom místě.</div>
+    <div class="helpBox"><h3>🏢 Intranet a SMI</h3>Vrstva <i>5 · Intranet a SMI</i> ukazuje, čím si e-shop sahá dovnitř firmy.
+      <b>Intranet ELKOPLAST</b> je brána zaměstnanců (Google SSO, moduly a přístupy): dostává prodeje z OMS, exporty dokladů z Heliosu a reklamace z veřejného formuláře, které posílá dál k vyřízení.
+      <b>SMI</b> běží jako modul v intranetu a je to počítací část nákupu — z výdejek a faktur Heliosu, feedu Shop.CZ a dat o prodejích spočítá min/max, návrh objednávky a přecenění a pošle požadavek nákupu.
+      Je záměrně <span class="abadge semi">◐ POLO</span>: čísla navrhuje stroj, potvrzuje je nákupčí.</div>
     <div class="helpBox"><h3>🔀 Směrovač = srdce logiky</h3>Jedna objednávka může obsahovat položky ze tří zdrojů. Směrovač ji rozpadne na dílčí zásilky:
       <ol><li><b>vlastní výrobek</b> → výrobní zakázka → po dokončení příjem na sklad → expedice</li><li><b>zboží skladem</b> → pick-list ve WMS → expedice</li><li><b>dropship</b> → objednávka odchází dodavateli (API/EDI) → dodavatel posílá přímo zákazníkovi, tracking se vrací webhookem</li></ol>
       Zákazník vidí termín u každé položky už na webu (dostupnostní engine) a při více zdrojích ví, že přijde více zásilek.</div>
@@ -1076,7 +1134,7 @@ function renderHelpPage(){
       Detailní seznam kroků včetně nástroje a spouštěče je v záložce <b>Procesy &amp; automatizace</b>.</div>
     <div class="helpBox"><h3>🖥 Obrazovky</h3>Každá obrazovka má mini-drátěnku z bloků (hlavička, mřížka, formulář…). Zapínáš je v inspektoru. Vazby mezi obrazovkami = kliknutí uživatele.
       Klíčové obrazovky nového e-shopu: detail produktu se <b>3 režimy dostupnosti</b>, konfigurátor vlastního výrobku, jednokrokový checkout, B2B portál s ceníky a hromadným importem, samoobslužná vratka.</div>
-    <div class="helpBox"><h3>✏️ Úpravy</h3><ul><li>klik v paletě přidá blok, tažením za hlavičku ho přesuneš</li><li>táhni z pravého portu na levý port jiného bloku = vazba</li><li>klik na blok/vazbu otevře inspektor; <code>Delete</code> maže</li><li>v inspektoru jsou <b>Vstupy</b> a <b>Výstupy</b> proklikávací — klik na název tě přenese na ten blok, ✎ otevře nastavení vazby</li><li>kolečko myši = zoom, tažení prázdné plochy = posun</li><li>vše se ukládá automaticky do prohlížeče; <b>Uložit JSON</b> stáhne soubor, <b>Načíst JSON</b> ho vrátí</li><li><b>Výchozí model</b> obnoví navržený stav, <b>Zkontrolovat model</b> najde nezapojené bloky</li></ul></div>
+    <div class="helpBox"><h3>✏️ Úpravy</h3><ul><li>klik v paletě přidá blok, tažením za hlavičku ho přesuneš</li><li>táhni z pravého portu na levý port jiného bloku = vazba</li><li>klik na blok/vazbu otevře inspektor; <code>Delete</code> maže</li><li>v inspektoru jsou <b>Vstupy</b> a <b>Výstupy</b> proklikávací — klik na název tě přenese na ten blok, ✎ otevře nastavení vazby</li><li>kolečko myši = zoom, tažení prázdné plochy = posun</li><li><b>⛶ Celá plocha</b> schová boční panely; paletu vrátí tlačítko <b>＋ Bloky</b>, inspektor se vysune sám, když něco vybereš</li><li>vše se ukládá automaticky do prohlížeče; <b>Uložit JSON</b> stáhne soubor, <b>Načíst JSON</b> ho vrátí</li><li><b>Výchozí model</b> obnoví navržený stav, <b>Zkontrolovat model</b> najde nezapojené bloky</li></ul></div>
     <div class="helpBox"><h3>🧱 Doporučená architektura</h3><ul><li><b>Helios = ERP jádro</b> a jediný zdroj pravdy: kmen produktů, zásoby, nákup, výroba, doklady, účetnictví</li><li><b>PIM</b> staví nad kmenem z Heliosu marketingový obsah (vlastní + dropship sortiment)</li><li><b>OMS</b> drží stavy objednávek a posílá je do Heliosu datově, nikdo nic nepřepisuje</li><li><b>Dostupnostní engine</b> spojuje zásoby a plán výroby z Heliosu s feedy dropship dodavatelů</li><li><b>API dopravců</b> (Balíkobot apod.) místo ručního tisku štítků</li><li><b>AI agent</b> generuje obsah a odpovídá zákazníkům z dat OMS</li><li>vše event-driven: webhooky místo ručního „zkontroluj a přepiš“</li></ul></div>
   </div>`;
 }
@@ -1179,6 +1237,8 @@ function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t
   let cerstvy=false;
   if(!ok&&!restore()){buildDefault();cerstvy=true;}
   if(ok)persistQuiet();
+  try{panelsOff=localStorage.getItem("em_panels")==="1";}catch(e){}
+  applyPanels();
   setPage("logic");renderCloudChip();renderLayers();updateHint();
   // u čerstvého modelu srovnej pohled na celé plátno (model je široký — vlevo e-shop, uprostřed Helios, vpravo zboží)
   if(cerstvy)requestAnimationFrame(()=>fitView());

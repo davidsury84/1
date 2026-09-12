@@ -21,6 +21,10 @@ Zpět se vrací objednávka a stavy z OMS, úhrada z platební brány, pohyby sk
 a dobropisy i doklady dodavatelů. E-shop není druhá evidence — je to výkladní skříň Heliosu. Vrstva
 **0 · Helios (ERP)** v přepínači ukáže celé jeho rozhraní na jednom místě.
 
+Vrstva **5 · Intranet a SMI** přidává interní nástroje: **intranet.elkoplast.cz** jako bránu zaměstnanců
+(prodeje z OMS, exporty dokladů z Heliosu, reklamace z veřejného formuláře) a **SMI**, které nad výdejkami
+Heliosu, feedem Shop.CZ a daty o prodejích počítá min/max, návrhy objednávek a přecenění.
+
 Tři zdroje zboží a jejich automatizace jsou srdcem toku (blok **Směrovač objednávky**):
 
 1. **Vlastní výrobky** — objednávka automaticky založí výrobní zakázku, termín z kapacity výroby, dokončení → příjem na sklad → expedice.
@@ -34,6 +38,8 @@ Cíl: člověk řeší jen výjimky.
 
 - **přepínač vrstev** nad plátnem (Vše · 1 Datová vrstva · 2 Cesta zákazníka · …) ukáže jen jednu oblast;
   vazby ven z vrstvy zůstanou jako čárkované pahýly s názvem protějšku, takže je vidět rozhraní vrstvy
+- **⛶ Celá plocha** schová boční panely a model využije celou šířku; paletu vrátí tlačítko ＋ Bloky,
+  inspektor se vysune sám, když něco vybereš (volba se pamatuje v prohlížeči)
 - **proklik**: klik na popisek vazby přejde na navazující blok, klik na název u pahýlu i do jeho vrstvy,
   klik na název oblasti otevře jen tu vrstvu; Vstupy/Výstupy v inspektoru jsou taky proklikávací
 - klik v paletě přidá blok, tažením za hlavičku ho přesuneš
