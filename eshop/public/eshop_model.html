@@ -79,8 +79,22 @@
   .zlbl{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;fill-opacity:.55;pointer-events:none}
   .elbl{font-family:var(--sans);font-size:10px;fill:var(--tx2);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round;pointer-events:none;text-anchor:middle}
   .elbl.sel{fill:#fff;font-weight:600}
-  .hint{position:absolute;left:50%;top:14px;transform:translateX(-50%);font-size:11px;color:var(--tx3);z-index:5;
+  .hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);max-width:calc(100% - 240px);overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--tx3);z-index:5;
     background:var(--bg2);border:1px solid var(--line);padding:6px 12px;border-radius:20px;pointer-events:none;white-space:nowrap}
+  /* přepínač vrstev — model jde číst po jedné oblasti, ne všechno naráz */
+  .layers{position:absolute;left:50%;top:12px;transform:translateX(-50%);z-index:6;display:flex;gap:6px;
+    flex-wrap:wrap;justify-content:center;max-width:calc(100% - 28px)}
+  .layers .lb{font:600 11px/1 var(--sans);color:var(--tx2);background:var(--bg2);border:1px solid var(--line);
+    padding:7px 11px;border-radius:20px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .layers .lb:hover{color:var(--tx);border-color:var(--line2)}
+  .layers .lb.on{background:var(--bg3,var(--bg2));box-shadow:0 0 0 1px currentColor inset}
+  .layers .lb .d{width:8px;height:8px;border-radius:2px;flex:none}
+  .layers .lb .c{color:var(--tx3);font-weight:500}
+  .edge.stub{stroke-dasharray:4 4;opacity:.85}
+  .stubdot{fill:var(--tx3)}
+  .elbl.stub{fill:var(--tx3);font-weight:600}
+  .elbl.stub.s{text-anchor:start}
+  .elbl.stub.e{text-anchor:end}
   .legend{position:absolute;left:14px;bottom:14px;z-index:5;background:var(--bg2);border:1px solid var(--line);border-radius:10px;
     padding:9px 12px;font-size:10.5px;color:var(--tx2);display:grid;gap:4px;min-width:170px}
   .legend b{color:var(--tx3);font-size:9.5px;text-transform:uppercase;letter-spacing:1px;font-weight:600}
@@ -249,6 +263,7 @@
     <div class="page on" id="pgCanvas">
       <aside class="palette" id="palette"></aside>
       <div class="canvas" id="canvas">
+        <div class="layers" id="layers"></div>
         <div class="hint" id="hint">Klikni na blok v paletě → přidá se na plátno · táhni z výstupního portu (vpravo) na vstupní (vlevo) → vazba · kolečko = zoom · Delete maže</div>
         <div class="legend" id="legend"></div>
         <div class="viewport" id="viewport">
@@ -469,12 +484,12 @@ function buildDefaultLogic(){
   E(analytics,"insight",crm,1,"segmenty, RFM");
   E(crm,"campaign",channel,0,"kampaně, remarketing","event",{trigger:"cron (pravidelně)"});
   const zones=[
-    {x:-20,y:-30,w:2020,h:290,label:"1 · Datová vrstva — produkty · ceny · dostupnost · obsah",color:"var(--core)"},
-    {x:-20,y:260,w:2020,h:430,label:"2 · Cesta zákazníka → objednávka → platba → směrovač",color:"var(--front)"},
-    {x:-20,y:690,w:2020,h:530,label:"3 · Doklady · notifikace · servis · marketing · ERP",color:"var(--integ)"},
-    {x:2020,y:-30,w:960,h:350,label:"4a · Vlastní výroba + nákup na sklad",color:"var(--supply)"},
-    {x:2020,y:320,w:960,h:390,label:"4b · Sklad → expedice → doručení",color:"var(--fulfil)"},
-    {x:2020,y:710,w:960,h:510,label:"4c · Dropship (přímo zákazníkovi) · vratky",color:"var(--integ)"}
+    {x:-20,y:-30,w:2020,h:290,label:"1 · Datová vrstva — produkty · ceny · dostupnost · obsah",short:"1 · Datová vrstva",color:"var(--core)"},
+    {x:-20,y:260,w:2020,h:430,label:"2 · Cesta zákazníka → objednávka → platba → směrovač",short:"2 · Cesta zákazníka",color:"var(--front)"},
+    {x:-20,y:690,w:2020,h:530,label:"3 · Doklady · notifikace · servis · marketing · ERP",short:"3 · Doklady a servis",color:"var(--integ)"},
+    {x:2020,y:-30,w:960,h:350,label:"4a · Vlastní výroba + nákup na sklad",short:"4a · Výroba a nákup",color:"var(--supply)"},
+    {x:2020,y:320,w:960,h:390,label:"4b · Sklad → expedice → doručení",short:"4b · Sklad a expedice",color:"var(--fulfil)"},
+    {x:2020,y:710,w:960,h:510,label:"4c · Dropship (přímo zákazníkovi) · vratky",short:"4c · Dropship a vratky",color:"var(--integ)"}
   ];
   return {nodes,edges,zones};
 }
@@ -501,8 +516,8 @@ function buildDefaultScreens(){
   E(cart,chk,"pokračovat");E(chk,thanks,"odeslat objednávku");E(thanks,track,"sledovat zásilku");
   E(thanks,acc,"můj účet");E(acc,ret,"vrátit zboží");E(b2b,cat,"katalog s mými cenami");E(b2b,cart,"hromadný import");E(acc,track,"detail objednávky");
   const zones=[
-    {x:-20,y:200,w:2340,h:380,label:"Hlavní nákupní cesta — domů → kategorie → detail → košík → checkout → potvrzení → sledování",color:"var(--front)"},
-    {x:-20,y:600,w:2340,h:380,label:"Vedlejší cesty — B2B portál · konfigurátor vlastního výrobku · účet · vratka",color:"var(--screen)"}
+    {x:-20,y:200,w:2340,h:380,label:"Hlavní nákupní cesta — domů → kategorie → detail → košík → checkout → potvrzení → sledování",short:"Hlavní nákupní cesta",color:"var(--front)"},
+    {x:-20,y:600,w:2340,h:380,label:"Vedlejší cesty — B2B portál · konfigurátor vlastního výrobku · účet · vratka",short:"Vedlejší cesty",color:"var(--screen)"}
   ];
   return {nodes,edges,zones};
 }
@@ -585,9 +600,52 @@ function wireHTML(n){const b=n.params.blocks||[];if(!b.length)return "";
     default:return `<div class="wb">${bx("",h)}</div>`;}}).join("");
   return `<div class="wire">${rows}</div>`;
 }
+/* ============ VRSTVY ============
+   Vrstva = oblast (zóna) modelu. Blok patří do té oblasti, uvnitř které leží jeho střed,
+   takže se vrstva odvozuje z plátna a drží se i u bloků, které si někdo přidá sám.
+   Filtr schová ostatní vrstvy a vazby ven z vrstvy naznačí pahýlem s názvem protějšku. */
+let layerSel={logic:null,screens:null};
+function curLayer(){return layerSel[dg];}
+function zoneShort(z){if(!z)return "";
+  if(z.short)return z.short;
+  const t=String(z.label||"").split(" — ")[0];
+  return t.length>26?t.slice(0,25).trim()+"…":t;}
+function nodeLayer(n,d){d=d||D();const zs=d.zones||[];
+  const cx=n.x+W/2, cy=n.y+nodeH(n)/2;
+  for(let i=0;i<zs.length;i++){const z=zs[i];if(cx>=z.x&&cx<=z.x+z.w&&cy>=z.y&&cy<=z.y+z.h)return i;}
+  return -1;}
+function layerVisible(n,d){const L=curLayer();if(L==null)return true;
+  if(typeof drag!=="undefined"&&drag&&drag.id===n.id)return true;   // tažený blok nesmí zmizet pod rukou
+  return nodeLayer(n,d)===L;}
+function visNodes(d){d=d||D();return d.nodes.filter(n=>layerVisible(n,d));}
+function setLayer(i){layerSel[dg]=i;sel=null;render();renderLayers();renderLegend();updateHint();inspect();fitView();}
+function renderLayers(){
+  const el=document.getElementById("layers");if(!el)return;
+  const canvasPg=currentPage==="logic"||currentPage==="screens";
+  const d=canvasPg?D():null, zs=(d&&d.zones)||[];
+  if(!canvasPg||!zs.length){el.style.display="none";el.innerHTML="";return;}
+  el.style.display="flex";
+  const L=curLayer(), cnt=i=>d.nodes.filter(n=>nodeLayer(n,d)===i).length;
+  let h=`<button class="lb${L==null?" on":""}" onclick="setLayer(null)" title="Všechny vrstvy na jednom plátně">Vše <span class="c">${d.nodes.length}</span></button>`;
+  zs.forEach((z,i)=>{h+=`<button class="lb${L===i?" on":""}" onclick="setLayer(${i})" style="${L===i?"color:"+z.color:""}" title="${esc(z.label)}"><span class="d" style="background:${z.color}"></span>${esc(zoneShort(z))} <span class="c">${cnt(i)}</span></button>`;});
+  const mimo=cnt(-1);
+  if(mimo)h+=`<button class="lb${L===-1?" on":""}" onclick="setLayer(-1)" title="Bloky, které neleží v žádné oblasti">Mimo oblasti <span class="c">${mimo}</span></button>`;
+  el.innerHTML=h;
+}
+function updateHint(){
+  const el=document.getElementById("hint");if(!el)return;
+  const L=curLayer();
+  if(L!=null){const z=(D().zones||[])[L];
+    el.textContent=(z?zoneShort(z)+" — ":"Bloky mimo oblasti — ")+"vidíš jen tuhle vrstvu; vazby do ostatních jsou naznačené čárkovaným pahýlem s názvem protějšku";
+    return;}
+  el.textContent=dg==="screens"
+    ?"Klikni na obrazovku v paletě → přidá se · táhni z portu „→ přechod\" na jinou obrazovku → navigace · kolečko = zoom"
+    :"Klikni na blok v paletě → přidá se na plátno · táhni z výstupního portu (vpravo) na vstupní (vlevo) → vazba · kolečko = zoom · Delete maže";
+}
+
 function render(){
   const d=D();const nodesEl=document.getElementById("nodes");nodesEl.innerHTML="";
-  d.nodes.forEach(n=>{
+  visNodes(d).forEach(n=>{
     const T=TYPES[n.type];const el=document.createElement("div");const a=n.params.auto;
     el.className="node"+(sel&&sel.k==="n"&&sel.id===n.id?" sel":"")+(a==="manual"?" a-manual":a==="semi"?" a-semi":"")+(T.auto===null?" sink":"");
     el.style.left=n.x+"px";el.style.top=n.y+"px";el.dataset.id=n.id;
@@ -623,16 +681,49 @@ function pathD(p1,p2){const dx=Math.max(60,Math.abs(p2.x-p1.x)*0.45);
     mid:{x:(p1.x+3*(p1.x+dx)+3*(p2.x-dx)+p2.x)/8,y:(p1.y+3*p1.y+3*p2.y+p2.y)/8}};}
 function renderEdges(){
   const svg=document.getElementById("edges");
+  const d=D(), L=curLayer();
   let html=`<defs>${Object.keys(EDGE_TYPES).map(t=>`<marker id="arr-${t}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--e-${t})"/></marker>`).join("")}
     <marker id="arr-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#fff"/></marker></defs>`;
-  if(showZones)(D().zones||[]).forEach(z=>{html+=`<rect class="zone" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" fill="${z.color}" stroke="${z.color}"></rect><text class="zlbl" x="${z.x+16}" y="${z.y+22}" fill="${z.color}">${esc(z.label)}</text>`;});
+  if(showZones)(d.zones||[]).forEach((z,i)=>{if(L!=null&&i!==L)return;
+    html+=`<rect class="zone" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" fill="${z.color}" stroke="${z.color}"></rect><text class="zlbl" x="${z.x+16}" y="${z.y+22}" fill="${z.color}">${esc(z.label)}</text>`;});
   const showLbl=pan().z>=0.55;
-  D().edges.forEach(e=>{
-    const pt=edgePts(e);if(!pt)return;
-    const {d,mid}=pathD(pt.p1,pt.p2);const isSel=sel&&sel.k==="e"&&sel.id===e.id;const t=e.etype||"data";
-    html+=`<path class="edgehit" d="${d}" data-edge="${e.id}"></path><path class="edge t-${t}${isSel?" sel":""}" d="${d}" data-edge="${e.id}" marker-end="url(#arr-${isSel?"sel":t})"></path>`;
-    if(t==="goods"||t==="money")html+=`<path class="flow" d="${d}"></path>`;
-    if(e.label&&(showLbl||isSel))html+=`<text class="elbl${isSel?" sel":""}" x="${mid.x}" y="${mid.y-6}">${esc(e.label)}</text>`;
+  const vis={};d.nodes.forEach(n=>{vis[n.id]=layerVisible(n,d);});
+  // pahýly končí ve dvou „sloupcích rozhraní" vedle vrstvy, ať popisky neleží na jiných blocích
+  const vn=d.nodes.filter(n=>vis[n.id]);
+  const colR=vn.length?Math.max(...vn.map(n=>n.x+W))+70:0;
+  const colL=vn.length?Math.min(...vn.map(n=>n.x))-70:0;
+  const obsazeno={R:[],L:[]};
+  function volnaY(strana,y){const a=obsazeno[strana];
+    let yy=y;let zmena=true;
+    while(zmena){zmena=false;for(const u of a){if(Math.abs(u-yy)<17){yy=u+17;zmena=true;}}}
+    a.push(yy);return yy;}
+  d.edges.forEach(e=>{
+    const a=d.nodes.find(n=>n.id===e.from), b=d.nodes.find(n=>n.id===e.to);
+    if(!a||!b)return;
+    const t=e.etype||"data", isSel=sel&&sel.k==="e"&&sel.id===e.id;
+    if(vis[a.id]&&vis[b.id]){
+      const pt=edgePts(e);if(!pt)return;
+      const {d:dd,mid}=pathD(pt.p1,pt.p2);
+      html+=`<path class="edgehit" d="${dd}" data-edge="${e.id}"></path><path class="edge t-${t}${isSel?" sel":""}" d="${dd}" data-edge="${e.id}" marker-end="url(#arr-${isSel?"sel":t})"></path>`;
+      if(t==="goods"||t==="money")html+=`<path class="flow" d="${dd}"></path>`;
+      if(e.label&&(showLbl||isSel))html+=`<text class="elbl${isSel?" sel":""}" x="${mid.x}" y="${mid.y-6}">${esc(e.label)}</text>`;
+      return;
+    }
+    if(L==null||(!vis[a.id]&&!vis[b.id]))return;   // obě strany mimo vrstvu → vazba se nekreslí
+    // vazba ven z vrstvy: krátký pahýl s názvem protějšku a jeho vrstvou
+    const ven=vis[a.id];
+    const j=TYPES[a.type].outs.findIndex(o=>o[0]===e.fp);
+    let i2=0;if(e.tp&&e.tp.startsWith("in")&&e.tp.length>2)i2=parseInt(e.tp.slice(2))||0;
+    const p=ven?outPort(a,j<0?0:j):inPort(b,i2);
+    const q={x:ven?colR:colL, y:volnaY(ven?"R":"L",p.y)};
+    const f=ven?p:q, g=ven?q:p, mx=f.x+(g.x-f.x)*0.5;
+    const path=`M ${f.x} ${f.y} C ${mx} ${f.y}, ${mx} ${g.y}, ${g.x} ${g.y}`;
+    const other=ven?b:a, ol=nodeLayer(other,d), oz=(d.zones||[])[ol];
+    const lbl=other.name+(oz?" · "+zoneShort(oz):"");
+    html+=`<path class="edgehit" d="${path}" data-edge="${e.id}"></path>`
+      +`<path class="edge stub t-${t}${isSel?" sel":""}" d="${path}" data-edge="${e.id}" marker-end="url(#arr-${isSel?"sel":t})"></path>`
+      +`<circle class="stubdot" cx="${ven?q.x:q.x}" cy="${q.y}" r="3"></circle>`
+      +`<text class="elbl stub ${ven?"s":"e"}${isSel?" sel":""}" x="${q.x+(ven?9:-9)}" y="${q.y+3.5}">${esc((ven?"→ ":"← ")+lbl)}</text>`;
   });
   svg.innerHTML=html;
 }
@@ -650,7 +741,8 @@ function updateKPI(){
 }
 function renderLegend(){
   const el=document.getElementById("legend");
-  const zt=`<div class="li" style="cursor:pointer;color:var(--tx)" onclick="toggleZones()">${showZones?"☑":"☐"} zobrazit oblasti</div><div class="li" style="color:var(--tx3)">popisky vazeb se ukáží po přiblížení</div>`;
+  const vr=curLayer()!=null?`<div class="li" style="color:var(--tx3)"><span class="sw" style="border-color:var(--tx3);border-top-style:dashed"></span>vazba do jiné vrstvy</div>`:"";
+  const zt=`<div class="li" style="cursor:pointer;color:var(--tx)" onclick="toggleZones()">${showZones?"☑":"☐"} zobrazit oblasti</div>${vr}<div class="li" style="color:var(--tx3)">popisky vazeb se ukáží po přiblížení</div>`;
   if(dg==="screens"){el.innerHTML=`<b>Obrazovky</b><div class="li"><span class="sw" style="border-color:var(--e-nav)"></span>navigace / akce uživatele</div><div class="li" style="color:var(--tx3)">šedé bloky = rozvržení stránky</div>${zt}`;return;}
   el.innerHTML=`<b>Vazby</b>
     <div class="li"><span class="sw" style="border-color:var(--e-data)"></span>data (API, feed, sync)</div>
@@ -697,7 +789,12 @@ window.addEventListener("mouseup",ev=>{
     if(inP){const [nid,port]=inP.split(":");
       if(nid!==conn.from){const e=newEdge(conn.from,conn.fp,nid,port);D().edges.push(e);sel={k:"e",id:e.id};persist();}}
     conn=null;render();inspect();}
-  if(drag)persist();
+  if(drag){const n=D().nodes.find(x=>x.id===drag.id);const L=curLayer();
+    persist();
+    if(n&&L!=null&&nodeLayer(n)!==L){const nl=nodeLayer(n),z=(D().zones||[])[nl];
+      drag=null;render();
+      toast(z?("Blok jsi přetáhl do vrstvy „"+zoneShort(z)+"“ — tady ho už neuvidíš."):"Blok leží mimo oblasti — ve filtru vrstev je pod „Mimo oblasti“.");}
+  }
   drag=null;panning=null;
 });
 canvas.addEventListener("wheel",ev=>{ev.preventDefault();
@@ -716,17 +813,24 @@ function delSel(){if(!sel)return;const d=D();
   select(null);persist();}
 function select(k,id){sel=k?{k,id}:null;render();inspect();}
 let addOff=0;
-function addType(t){const p=pan();const x=(-p.x+260)/p.z+addOff%4*30,y=(-p.y+120)/p.z+addOff%4*30;addOff++;
-  const n=newNode(t,Math.round(x),Math.round(y));D().nodes.push(n);select("n",n.id);persist();}
-function addScreen(kind){const P=SCREEN_PRESETS.find(p=>p[0]===kind);const p=pan();const x=(-p.x+260)/p.z+addOff%4*30,y=(-p.y+120)/p.z+addOff%4*30;addOff++;
-  const n=newNode("screen",Math.round(x),Math.round(y));n.name=P[1];n.params.kind=kind;n.params.blocks=[...P[2]];n.params.url="/"+kind;
+/* při zapnuté vrstvě posadíme nový blok dovnitř té oblasti, ať se hned neztratí */
+function clampToLayer(x,y){const L=curLayer();if(L==null||L<0)return {x,y};
+  const z=(D().zones||[])[L];if(!z)return {x,y};
+  return {x:Math.min(Math.max(x,z.x+20),Math.max(z.x+20,z.x+z.w-W-20)),
+          y:Math.min(Math.max(y,z.y+40),Math.max(z.y+40,z.y+z.h-160))};}
+function addType(t){const p=pan();const c=clampToLayer((-p.x+260)/p.z+addOff%4*30,(-p.y+120)/p.z+addOff%4*30);addOff++;
+  const n=newNode(t,Math.round(c.x),Math.round(c.y));D().nodes.push(n);select("n",n.id);persist();}
+function addScreen(kind){const P=SCREEN_PRESETS.find(p=>p[0]===kind);const p=pan();const c=clampToLayer((-p.x+260)/p.z+addOff%4*30,(-p.y+120)/p.z+addOff%4*30);addOff++;
+  const n=newNode("screen",Math.round(c.x),Math.round(c.y));n.name=P[1];n.params.kind=kind;n.params.blocks=[...P[2]];n.params.url="/"+kind;
   D().nodes.push(n);select("n",n.id);persist();}
 function duplicateSel(){if(!sel||sel.k!=="n")return;const n=D().nodes.find(x=>x.id===sel.id);if(!n)return;
   const c=JSON.parse(JSON.stringify(n));c.id="n"+(uid++);c.x+=30;c.y+=30;c.name+=" (kopie)";D().nodes.push(c);select("n",c.id);persist();}
-function fitView(){const d=D();if(!d.nodes.length)return;
-  const zs=showZones?(d.zones||[]):[];
-  const minX=Math.min(...d.nodes.map(n=>n.x),...zs.map(z=>z.x)),minY=Math.min(...d.nodes.map(n=>n.y),...zs.map(z=>z.y));
-  const maxX=Math.max(...d.nodes.map(n=>n.x+W),...zs.map(z=>z.x+z.w)),maxY=Math.max(...d.nodes.map(n=>n.y+nodeH(n)+40),...zs.map(z=>z.y+z.h));
+function fitView(){const d=D();const ns=visNodes(d);if(!ns.length)return;
+  const L=curLayer();
+  const zs=showZones?(d.zones||[]).filter((z,i)=>L==null||i===L):[];
+  const okraj=L==null?0:300;   // sloupce rozhraní (pahýly vazeb ven) vedle vrstvy
+  const minX=Math.min(...ns.map(n=>n.x),...zs.map(z=>z.x))-okraj,minY=Math.min(...ns.map(n=>n.y),...zs.map(z=>z.y));
+  const maxX=Math.max(...ns.map(n=>n.x+W),...zs.map(z=>z.x+z.w))+okraj,maxY=Math.max(...ns.map(n=>n.y+nodeH(n)+40),...zs.map(z=>z.y+z.h));
   const r=canvas.getBoundingClientRect();const z=Math.min(2,Math.max(0.3,Math.min((r.width-60)/(maxX-minX),(r.height-90)/(maxY-minY))));
   const p=pan();p.z=z;p.x=(r.width-(maxX-minX)*z)/2-minX*z;p.y=(r.height-(maxY-minY)*z)/2-minY*z+16;applyPan();renderEdges();}
 
@@ -833,12 +937,8 @@ function setPage(pg){
   document.getElementById("pgCanvas").classList.toggle("on",canvasPg);
   document.getElementById("pgProcess").classList.toggle("on",pg==="process");
   document.getElementById("pgHelp").classList.toggle("on",pg==="help");
-  if(canvasPg){if(dg!==pg){dg=pg;sel=null;}buildPalette();renderLegend();render();inspect();
-    document.getElementById("hint").textContent=pg==="screens"
-      ?"Klikni na obrazovku v paletě → přidá se · táhni z portu „→ přechod“ na jinou obrazovku → navigace · kolečko = zoom"
-      :"Klikni na blok v paletě → přidá se na plátno · táhni z výstupního portu (vpravo) na vstupní (vlevo) → vazba · kolečko = zoom · Delete maže";}
-  else if(pg==="process")renderProcessPage();
-  else if(pg==="help")renderHelpPage();
+  if(canvasPg){if(dg!==pg){dg=pg;sel=null;}buildPalette();renderLegend();render();inspect();renderLayers();updateHint();}
+  else {renderLayers();if(pg==="process")renderProcessPage();else if(pg==="help")renderHelpPage();}
 }
 
 /* ============ PROCESY & AUTOMATIZACE ============ */
@@ -889,6 +989,9 @@ function renderHelpPage(){
     <div class="helpBox"><h3>🧩 Logika e-shopu</h3>Každý blok je systém nebo proces, každá vazba říká <b>co</b> mezi nimi teče a <b>kdy</b> (spouštěč).
       <ul><li><span style="color:var(--e-data)">modrá</span> = data (API, feed, synchronizace)</li><li><span style="color:var(--e-goods)">oranžová</span> = fyzické zboží</li><li><span style="color:var(--e-money)">zelená</span> = peníze</li><li><span style="color:var(--e-event)">fialová čárkovaná</span> = událost, která něco spustí</li></ul>
       Čti zleva doprava: zákazník → web → košík → OMS → <b>směrovač</b> → tři zdroje zboží → expedice → doručení.</div>
+    <div class="helpBox"><h3>🧅 Čtení po vrstvách</h3>Celý model naráz je hustý. Nad plátnem je <b>přepínač vrstev</b> — klikni na oblast (např. <i>4a · Výroba a nákup</i>) a uvidíš jen ji.
+      Vazby, které z vrstvy vedou ven, se nezahodí: skončí čárkovaným pahýlem v postranním sloupci s názvem protějšku a jeho vrstvou — na první pohled vidíš <b>rozhraní vrstvy</b>, tedy co do ní vstupuje a co z ní odchází.
+      <b>Vše</b> vrátí kompletní plátno. Vrstva bloku se bere podle toho, ve které oblasti leží jeho střed, takže platí i pro bloky, které si přidáš sám.</div>
     <div class="helpBox"><h3>🔀 Směrovač = srdce logiky</h3>Jedna objednávka může obsahovat položky ze tří zdrojů. Směrovač ji rozpadne na dílčí zásilky:
       <ol><li><b>vlastní výrobek</b> → výrobní zakázka → po dokončení příjem na sklad → expedice</li><li><b>zboží skladem</b> → pick-list ve WMS → expedice</li><li><b>dropship</b> → objednávka odchází dodavateli (API/EDI) → dodavatel posílá přímo zákazníkovi, tracking se vrací webhookem</li></ol>
       Zákazník vidí termín u každé položky už na webu (dostupnostní engine) a při více zdrojích ví, že přijde více zásilek.</div>
@@ -999,7 +1102,7 @@ function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t
   if(sharedId){ok=await loadShared(sharedId);if(ok){try{history.replaceState(null,"",location.pathname);}catch(e){}}}
   if(!ok&&!restore())buildDefault();
   if(ok)persistQuiet();
-  setPage("logic");renderCloudChip();
+  setPage("logic");renderCloudChip();renderLayers();updateHint();
 })();
 </script>
 </body>
