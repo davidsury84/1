@@ -10,12 +10,18 @@ Aplikace: `public/eshop_model.html` — otevři přímo v prohlížeči, nic se 
 
 | Záložka | Obsah |
 |---|---|
-| 🧩 **Logika e-shopu** | systémy a procesy jako bloky, vazby = co mezi nimi teče (data / zboží / peníze / událost) a kdy (spouštěč). Oblasti: datová vrstva → cesta zákazníka → doklady/servis → tři zdroje zboží |
+| 🧩 **Logika e-shopu** | systémy a procesy jako bloky, vazby = co mezi nimi teče (data / zboží / peníze / událost) a kdy (spouštěč). Uprostřed stojí **Helios (ERP)** jako jádro, kolem něj vrstvy: data pro web → cesta zákazníka → doklady/servis → tři zdroje zboží |
 | 🖥 **Obrazovky** | stránky e-shopu s mini-drátěnkou rozvržení, vazby = akce uživatele (navigace) |
 | ⚙ **Procesy & automatizace** | tabulka kroků: kdo je dělá dnes (ručně / polo / auto), cílový stav, nástroj, spouštěč; % automatizace dnes vs. cíl |
 | ❔ **Jak číst model** | legenda a doporučená architektura |
 
-Tři zdroje zboží a jejich automatizace jsou srdcem modelu (blok **Směrovač objednávky**):
+**Helios je jádro modelu.** Ven z něj jde kmen produktů do PIM, nákupní ceny do cenotvorby, stav zásob a plán
+výroby do dostupnostního enginu, výrobní zakázka do výroby, výdejka na sklad, faktura do dokladů a data do BI.
+Zpět se vrací objednávka a stavy z OMS, úhrada z platební brány, pohyby skladu, hlášení z výroby, vratky
+a dobropisy i doklady dodavatelů. E-shop není druhá evidence — je to výkladní skříň Heliosu. Vrstva
+**0 · Helios (ERP)** v přepínači ukáže celé jeho rozhraní na jednom místě.
+
+Tři zdroje zboží a jejich automatizace jsou srdcem toku (blok **Směrovač objednávky**):
 
 1. **Vlastní výrobky** — objednávka automaticky založí výrobní zakázku, termín z kapacity výroby, dokončení → příjem na sklad → expedice.
 2. **Zboží na sklad** — WMS hlídá minima, nákup objednává sám (auto-PO), pick-list, štítky přes API dopravců.

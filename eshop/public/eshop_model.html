@@ -10,6 +10,7 @@
     --tx:#dfe6ef; --tx2:#9aa7b8; --tx3:#65727f;
     --acc:#39d3b4; --acc2:#1a9d86; --warn:#f0a93b; --bad:#e8604c; --ok:#7bd06b;
     --front:#3a86c8; --core:#39d3b4; --supply:#f0a93b; --fulfil:#7bd06b; --integ:#b48ee8; --logic:#d97757; --screen:#9aa7b8;
+    --erp:#f2c14e;   /* Helios — ERP jádro modelu */
     --e-data:#3a86c8; --e-goods:#f0a93b; --e-money:#7bd06b; --e-event:#b48ee8; --e-nav:#9aa7b8;
     --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
     --sans:ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
@@ -302,6 +303,7 @@
 
 /* ============ KATEGORIE A TYPY BLOKŮ ============ */
 const CAT={
+  erp:{label:"ERP jádro — Helios",color:"var(--erp)"},
   front:{label:"Zákaznická vrstva",color:"var(--front)"},
   core:{label:"Jádro e-shopu",color:"var(--core)"},
   supply:{label:"Zásobování (3 zdroje zboží)",color:"var(--supply)"},
@@ -344,7 +346,11 @@ const TYPES={
   returns:{label:"Vratky & reklamace",cat:"fulfil",desc:"samoobsluha, refundace",ins:["požadavek"],outs:[["refund","refundace"],["restock","zpět na sklad"]],auto:"semi"},
   support:{label:"Zákaznický servis",cat:"fulfil",desc:"AI asistent + eskalace",ins:["dotaz"],outs:[["answer","odpověď"],["escal","eskalace člověku"]],auto:"semi"},
   /* integrace */
-  erp:{label:"ERP / účetnictví",cat:"integ",desc:"doklady, sklad, výroba",ins:["objednávky","doklady"],outs:[["sync","synchronizace"]],auto:"auto"},
+  erp:{label:"Helios — ERP (jádro)",cat:"erp",desc:"kmen produktů, zásoby, nákup, výroba, doklady, účetnictví",
+    ins:["objednávka / zakázka","úhrada","pohyb skladu","hlášení z výroby","vratka / dobropis","doklady dodavatele"],
+    outs:[["master","kmen produktů"],["cost","nákupní ceny a marže"],["stock","stav zásob"],["plan","plán a kapacita výroby"],
+          ["mo","výrobní zakázka"],["pick","výdejka / pick-list"],["doc","faktura a doklady"],["bi","data pro BI"],["sync","synchronizace"]],
+    auto:"auto"},
   crm:{label:"CRM & marketing automat",cat:"integ",desc:"segmenty, kampaně, remarketing",ins:["zákazníci","události"],outs:[["campaign","kampaně"]],auto:"auto"},
   analytics:{label:"Analytika / BI",cat:"integ",desc:"prodeje, prognózy, KPI",ins:["události / data"],outs:[["insight","reporty"],["forecast","prognóza"]],auto:"auto"},
   ai:{label:"AI agent",cat:"integ",desc:"obsah, překlady, podpora",ins:["zadání / data"],outs:[["out","výstup"]],auto:"auto"},
@@ -405,40 +411,70 @@ function buildDefaultLogic(){
   const nodes=[],edges=[];
   const N=(t,x,y,name,p)=>{const n=newNode(t,x,y);if(name)n.name=name;if(p)Object.assign(n.params,p);nodes.push(n);return n;};
   const E=(a,ap,b,bi,label,etype,extra)=>{edges.push(Object.assign(newEdge(a.id,ap,b.id,"in"+bi),{label,etype:etype||"data"},extra||{}));};
-  // sloupce
-  const A=20,B=360,C=700,D_=1040,E_=1380,F=1720,G=2060,H=2400,I=2740;
-  const ai=N("ai",A,20,"AI agent (obsah)",{system:"LLM API",note:"popisy, překlady, SEO, odpovědi na dotazy"});
-  const pim=N("pim",B,20,"PIM – produktová data",{system:"PIM / e-shop admin",note:"vlastní výrobky + zboží na sklad + dropship sortiment"});
-  const pricing=N("pricing",C,20,"Cenotvorba",{system:"cenová pravidla",note:"nákupní cena + marže dle zdroje; B2B ceníky; akce"});
-  const stock=N("stock",D_,20,"Dostupnostní engine",{system:"vlastní služba",note:"skladem → ihned; vlastní výroba → dle kapacity; dropship → dle dodavatele"});
-  const search=N("search",E_,20,"Vyhledávání & doporučení",{system:"fulltext + AI"});
-  const analytics=N("analytics",F,20,"Analytika / BI",{system:"GA4 + BI",note:"prodeje, marže dle zdroje, prognóza poptávky"});
+  // sloupce: vlevo e-shop, uprostřed Helios (ERP jádro), vpravo zboží
+  const A=20,B=360,C=700,D_=1040,E_=1380,F=1720, HX=2140, G=2580,H=2920,I=3260;
 
+  /* ---- ERP jádro: všechno podstatné prochází Heliosem ---- */
+  const helios=N("erp",HX,455,"Helios — ERP (jádro)",{system:"Helios",api:"Databáze / sync",
+    note:"jeden zdroj pravdy: kmen produktů, zásoby, nákup, výroba, doklady, účetnictví. E-shop je jeho výkladní skříň, ne druhá evidence."});
+
+  /* ---- data pro web (odvozená z Heliosu) ---- */
+  const ai=N("ai",A,20,"AI agent (obsah)",{system:"LLM API",note:"popisy, překlady, SEO, odpovědi na dotazy"});
+  const pim=N("pim",B,20,"PIM – produktová data",{system:"PIM nad Heliosem",note:"kmen a skladové karty z Heliosu, marketingový obsah v PIM; dropship sortiment z feedů"});
+  const pricing=N("pricing",C,20,"Cenotvorba",{system:"cenová pravidla",note:"nákupní cena z Heliosu + marže dle zdroje; B2B ceníky, akce"});
+  const stock=N("stock",D_,20,"Dostupnostní engine",{system:"vlastní služba",note:"zásoby a plán výroby z Heliosu, dropship z feedu dodavatele → termín u každé položky"});
+  const search=N("search",E_,20,"Vyhledávání & doporučení",{system:"fulltext + AI"});
+  const analytics=N("analytics",F,20,"Analytika / BI",{system:"BI nad Heliosem + GA4",note:"prodeje, marže dle zdroje, prognóza poptávky"});
+
+  /* ---- cesta zákazníka ---- */
   const channel=N("channel",A,300,"Heureka · Zboží · Google",{system:"XML feedy",api:"XML/CSV feed"});
   const b2c=N("customer",A,505,"Zákazník B2C");
   const b2b=N("customer",A,760,"Zákazník B2B (firmy, obce)");
   const web=N("web",B,400,"Storefront shop.elkoplast.cz",{system:"nový e-shop",note:"responzivní, rychlý, SEO; dostupnost a termín u každé položky"});
-  const account=N("account",B,760,"Účet / B2B portál",{system:"nový e-shop",note:"individuální ceníky, hromadná objednávka, faktury, opakovaný nákup"});
+  const account=N("account",B,760,"Účet / B2B portál",{system:"nový e-shop",note:"individuální ceníky z Heliosu, hromadná objednávka, faktury, opakovaný nákup"});
   const cart=N("cart",C,400,"Košík & checkout",{note:"1 krok; doprava a platba dle složení košíku (více zdrojů = více zásilek)"});
-  const pay=N("payment",D_,400,"Platební brána",{system:"Comgate / GoPay",api:"Webhook",note:"B2B: platba fakturou se splatností"});
-  const oms=N("oms",E_,400,"OMS – řízení objednávek",{system:"nový e-shop / ERP",note:"stavy, rozpad na dílčí zásilky, žádné ruční přepisy"});
-  const router=N("router",F,400,"Směrovač objednávky",{note:"pravidla: položka skladem → WMS; vlastní výrobek → výroba; dropship → dodavatel"});
-  const invoicing=N("invoicing",D_,760,"Fakturace & doklady",{system:"ERP",note:"faktura při expedici, dobropis při vratce"});
+  const pay=N("payment",D_,400,"Platební brána",{system:"Comgate / GoPay",api:"Webhook",note:"B2B: platba fakturou se splatností; úhrady se párují v Heliosu"});
+  const oms=N("oms",E_,400,"OMS – řízení objednávek",{system:"e-shop ↔ Helios",note:"stavy a rozpad na dílčí zásilky; do Heliosu jde objednávka datově, nikdo nic nepřepisuje"});
+  const router=N("router",F,400,"Směrovač objednávky",{note:"pravidla: položka skladem → výdejka v Heliosu; vlastní výrobek → výrobní zakázka; dropship → dodavatel"});
+  const invoicing=N("invoicing",D_,760,"Fakturace & doklady",{system:"Helios",note:"faktura při expedici, dobropis při vratce — vystavuje Helios"});
   const notify=N("notify",C,760,"Notifikace zákazníka",{system:"e-mail / SMS",note:"přijato · zaplaceno · ve výrobě · expedováno · doručeno"});
+  const support=N("support",A,1030,"Zákaznický servis",{system:"AI asistent",note:"odpovídá z dat OMS a Heliosu; člověk jen eskalace"});
+  const crm=N("crm",C,1030,"CRM & marketing automat",{system:"e-mailing / CRM"});
 
-  const production=N("production",G,80,"Vlastní výroba",{system:"ERP / MES",note:"výrobní zakázka vzniká automaticky z objednávky"});
-  const wms=N("wms",G,430,"Sklad / WMS",{system:"WMS + čtečky",note:"jediný stav zásob pro web i ERP"});
-  const dropship=N("dropship",G,830,"Dropship dodavatel",{system:"API / EDI / feed",api:"REST API",note:"objednávka odchází automaticky; tracking zpět webhookem"});
-  const purchasing=N("purchasing",H,80,"Nákup na sklad",{system:"ERP",note:"auto-PO při poklesu pod minimum + prognóza"});
+  /* ---- tři zdroje zboží ---- */
+  const production=N("production",G,80,"Vlastní výroba",{system:"Helios (výroba)",note:"výrobní zakázka vzniká automaticky z objednávky"});
+  const purchasing=N("purchasing",H,80,"Nákup na sklad",{system:"Helios (nákup)",note:"auto-PO při poklesu pod minimum + prognóza"});
   const supplier=N("supplier",I,80,"Dodavatel (na sklad)",{api:"E-mail (automat)"});
+  const wms=N("wms",G,430,"Sklad / WMS",{system:"Helios (sklad) + čtečky",note:"jediný stav zásob pro web i Helios"});
   const shipping=N("shipping",H,430,"Expedice & dopravci",{system:"Balíkobot / API dopravců",api:"REST API",note:"štítek + svoz bez lidského zásahu"});
   const delivery=N("delivery",I,430,"Doručení zákazníkovi");
-  const returns=N("returns",I,830,"Vratky & reklamace",{note:"samoobslužný formulář; refundace do limitu automaticky"});
-  const support=N("support",A,1030,"Zákaznický servis",{system:"AI asistent",note:"odpovídá z dat OMS a trackingu; člověk jen eskalace"});
-  const crm=N("crm",C,1030,"CRM & marketing automat",{system:"e-mailing / CRM"});
-  const erp=N("erp",E_,1030,"ERP / účetnictví",{system:"Pohoda / ABRA / Helios",api:"Databáze / sync"});
+  const dropship=N("dropship",G,830,"Dropship dodavatel",{system:"API / EDI / feed",api:"REST API",note:"objednávka odchází automaticky; tracking a faktura se vrací webhookem"});
+  const returns=N("returns",I,830,"Vratky & reklamace",{note:"samoobslužný formulář; refundace do limitu automaticky, dobropis v Heliosu"});
 
-  // datová vrstva
+  // ---- z Heliosu ven: data, zakázky, doklady ----
+  E(helios,"master",pim,0,"kmen produktů a skladové karty","data",{trigger:"realtime / webhook"});
+  E(helios,"master",ai,0,"karty produktů k popisu","data",{trigger:"při změně stavu"});
+  E(helios,"cost",pricing,0,"nákupní ceny a marže");
+  E(helios,"stock",stock,0,"stav zásob","data",{trigger:"realtime / webhook"});
+  E(helios,"plan",stock,1,"plán a kapacita výroby");
+  E(helios,"bi",analytics,0,"prodeje, marže, zásoby","data",{trigger:"cron (pravidelně)"});
+  E(helios,"doc",invoicing,0,"faktura a doklady");
+  E(helios,"mo",production,0,"výrobní zakázka");
+  E(helios,"pick",wms,2,"výdejka / pick-list");
+  E(helios,"stock",purchasing,0,"pokles pod minimum","event",{trigger:"při změně stavu"});
+
+  // ---- do Heliosu: objednávky, peníze, pohyby, doklady ----
+  E(oms,"docs",helios,0,"objednávka a stavy","data",{trigger:"realtime / webhook"});
+  E(router,"own",helios,0,"položky z vlastní výroby");
+  E(router,"stock",helios,0,"položky ze skladu");
+  E(pay,"paid",helios,1,"úhrada","money",{trigger:"realtime / webhook"});
+  E(wms,"level",helios,2,"příjem a výdej ze skladu","data",{trigger:"při změně stavu"});
+  E(production,"plan",helios,3,"hlášení z výroby a kapacita");
+  E(returns,"restock",helios,4,"vratka a dobropis");
+  E(supplier,"feed",helios,5,"ceník a dodací listy");
+  E(dropship,"track",helios,5,"faktura dodavatele","data",{trigger:"realtime / webhook"});
+
+  // ---- data pro web ----
   E(ai,"out",pim,2,"popisy, překlady, SEO texty","data",{trigger:"při změně stavu"});
   E(pim,"catalog",web,1,"katalog produktů");
   E(pim,"catalog",search,0,"index");
@@ -446,12 +482,10 @@ function buildDefaultLogic(){
   E(pricing,"price",web,2,"prodejní ceny + B2B ceníky");
   E(stock,"avail",web,3,"dostupnost + termín dodání");
   E(search,"results",web,1,"výsledky / doporučení");
-  E(production,"plan",stock,1,"plán a kapacita výroby");
-  E(wms,"level",stock,0,"stav skladu");
   E(dropship,"feed",stock,2,"sklad dodavatele","data",{trigger:"cron (pravidelně)"});
   E(dropship,"feed",pim,1,"produkty dropship","data",{trigger:"cron (pravidelně)"});
-  E(supplier,"feed",pricing,0,"nákupní ceny");
-  // cesta zákazníka
+
+  // ---- cesta zákazníka ----
   E(channel,"traffic",web,0,"návštěvnost","event");
   E(b2c,"visit",web,0,"návštěva","event");
   E(b2b,"visit",account,0,"přihlášení","event");
@@ -463,29 +497,25 @@ function buildDefaultLogic(){
   E(pay,"paid",oms,1,"zaplaceno","event",{trigger:"realtime / webhook"});
   E(oms,"confirmed",router,0,"potvrzená objednávka");
   E(oms,"status",notify,0,"změna stavu","event",{trigger:"při změně stavu"});
-  E(oms,"docs",invoicing,0,"podklady k fakturaci");
-  E(oms,"docs",erp,0,"synchronizace objednávek","data",{trigger:"realtime / webhook"});
-  E(invoicing,"acc",erp,1,"doklady do účetnictví");
   E(invoicing,"invoice",notify,0,"faktura PDF");
   E(notify,"msg",b2c,0,"e-mail / SMS","event");
   E(notify,"msg",b2b,0,"e-mail + faktura","event");
-  // směrování dle zdroje
-  E(router,"own",production,0,"výrobní zakázka");
-  E(router,"stock",wms,2,"výdejka / pick-list");
+
+  // ---- fyzický tok zboží ----
   E(router,"drop",dropship,0,"objednávka dodavateli (API/EDI)","data",{trigger:"realtime / webhook"});
-  // fyzický tok
   E(production,"done",wms,0,"hotový výrobek → příjem","goods");
   E(wms,"pick",shipping,0,"vychystaný balík","goods");
   E(dropship,"ship",delivery,1,"zásilka přímo zákazníkovi","goods");
-  E(dropship,"track",shipping,1,"tracking + faktura dodavatele","data",{trigger:"realtime / webhook"});
+  E(dropship,"track",shipping,1,"tracking dodavatele","data",{trigger:"realtime / webhook"});
   E(shipping,"parcel",delivery,0,"zásilka","goods");
   E(shipping,"track",oms,2,"stav doručení","event",{trigger:"realtime / webhook"});
-  // nákup na sklad
-  E(wms,"level",purchasing,0,"pokles pod minimum","event",{trigger:"při změně stavu"});
+
+  // ---- nákup na sklad ----
   E(analytics,"forecast",purchasing,1,"prognóza prodejů","data",{trigger:"cron (pravidelně)"});
   E(purchasing,"po",supplier,0,"automatická objednávka");
   E(supplier,"delivery",wms,1,"dodávka + příjemka","goods");
-  // vratky, servis, marketing
+
+  // ---- vratky, servis, marketing ----
   E(delivery,"claim",returns,0,"vratka / reklamace","goods");
   E(returns,"refund",pay,0,"refundace","money");
   E(returns,"restock",wms,1,"zpět na sklad","goods");
@@ -493,13 +523,15 @@ function buildDefaultLogic(){
   E(support,"escal",returns,0,"eskalace","event");
   E(analytics,"insight",crm,1,"segmenty, RFM");
   E(crm,"campaign",channel,0,"kampaně, remarketing","event",{trigger:"cron (pravidelně)"});
+
   const zones=[
-    {x:-20,y:-30,w:2020,h:290,label:"1 · Datová vrstva — produkty · ceny · dostupnost · obsah",short:"1 · Datová vrstva",color:"var(--core)"},
+    {x:2020,y:-30,w:460,h:1250,label:"0 · Helios — ERP jádro celého modelu",short:"0 · Helios (ERP)",color:"var(--erp)"},
+    {x:-20,y:-30,w:2020,h:290,label:"1 · Data pro web — kmen z Heliosu, obsah a ceny nad ním",short:"1 · Data pro web",color:"var(--core)"},
     {x:-20,y:260,w:2020,h:430,label:"2 · Cesta zákazníka → objednávka → platba → směrovač",short:"2 · Cesta zákazníka",color:"var(--front)"},
-    {x:-20,y:690,w:2020,h:530,label:"3 · Doklady · notifikace · servis · marketing · ERP",short:"3 · Doklady a servis",color:"var(--integ)"},
-    {x:2020,y:-30,w:960,h:350,label:"4a · Vlastní výroba + nákup na sklad",short:"4a · Výroba a nákup",color:"var(--supply)"},
-    {x:2020,y:320,w:960,h:390,label:"4b · Sklad → expedice → doručení",short:"4b · Sklad a expedice",color:"var(--fulfil)"},
-    {x:2020,y:710,w:960,h:510,label:"4c · Dropship (přímo zákazníkovi) · vratky",short:"4c · Dropship a vratky",color:"var(--integ)"}
+    {x:-20,y:690,w:2020,h:530,label:"3 · Doklady · notifikace · servis · marketing",short:"3 · Doklady a servis",color:"var(--integ)"},
+    {x:2540,y:-30,w:960,h:350,label:"4a · Vlastní výroba + nákup na sklad",short:"4a · Výroba a nákup",color:"var(--supply)"},
+    {x:2540,y:320,w:960,h:390,label:"4b · Sklad → expedice → doručení",short:"4b · Sklad a expedice",color:"var(--fulfil)"},
+    {x:2540,y:710,w:960,h:510,label:"4c · Dropship (přímo zákazníkovi) · vratky",short:"4c · Dropship a vratky",color:"var(--integ)"}
   ];
   return {nodes,edges,zones};
 }
@@ -537,31 +569,31 @@ const FLOW_LBL={common:"Společné",stock:"Zboží na sklad",own:"Vlastní výro
 function buildDefaultProcess(){
   const P=(flow,step,now,target,tool,trigger)=>({id:"p"+(uid++),flow,step,now,target,tool,trigger});
   return [
-    P("common","Import produktových dat (vlastní + dodavatelé)","manual","auto","PIM + feedy dodavatelů (XML/CSV/API)","cron 1×/h"),
+    P("common","Import produktových dat (vlastní + dodavatelé)","manual","auto","kmen z Heliosu + feedy dodavatelů (XML/CSV/API) do PIM","cron 1×/h"),
     P("common","Tvorba popisů, překladů a SEO textů","manual","auto","AI agent + schválení jen výjimek","nový produkt v PIM"),
-    P("common","Aktualizace cen a marží","manual","auto","cenová pravidla (nákupní cena + marže dle zdroje)","změna nákupní ceny"),
-    P("common","Aktualizace dostupnosti a dodacích lhůt","semi","auto","dostupnostní engine (sklad + výroba + dropship)","realtime"),
+    P("common","Aktualizace cen a marží","manual","auto","cenová pravidla nad nákupní cenou z Heliosu (marže dle zdroje)","změna nákupní ceny v Heliosu"),
+    P("common","Aktualizace dostupnosti a dodacích lhůt","semi","auto","dostupnostní engine (zásoby a plán z Heliosu + feed dropshipu)","realtime"),
     P("common","Přijetí objednávky a potvrzení zákazníkovi","semi","auto","OMS + notifikace","webhook"),
     P("common","Ověření platby a spárování","semi","auto","platební brána webhook / párování VS","webhook"),
-    P("common","Rozdělení objednávky podle zdroje položek","manual","auto","směrovač: skladem → WMS · vlastní → výroba · dropship → dodavatel","potvrzená objednávka"),
-    P("common","Vystavení faktury a zaúčtování","manual","auto","fakturace + ERP API","expedice / platba"),
+    P("common","Rozdělení objednávky podle zdroje položek","manual","auto","směrovač → Helios: skladem → výdejka · vlastní → výrobní zakázka · dropship → dodavatel","potvrzená objednávka"),
+    P("common","Vystavení faktury a zaúčtování","manual","auto","Helios: faktura a zaúčtování z dat objednávky","expedice / platba"),
     P("common","Informování zákazníka o stavu","semi","auto","e-mail / SMS z OMS","změna stavu"),
     P("common","Zákaznický servis (dotazy na stav, termín)","manual","semi","AI asistent nad daty OMS + eskalace člověku","příchozí dotaz"),
     P("common","Reklamace a vratky","manual","semi","samoobslužný formulář + automatická refundace do limitu","požadavek zákazníka"),
-    P("common","Reporting a prognózy prodejů","manual","auto","BI dashboard, prognóza poptávky","týdně"),
-    P("stock","Hlídání minimálních zásob","manual","auto","WMS min/max + prognóza","realtime"),
+    P("common","Reporting a prognózy prodejů","manual","auto","BI nad daty Heliosu, prognóza poptávky","týdně"),
+    P("stock","Hlídání minimálních zásob","manual","auto","Helios min/max + prognóza z BI","realtime"),
     P("stock","Objednávka zboží dodavateli","manual","auto","auto-PO e-mail / API / EDI","pokles pod minimum"),
-    P("stock","Příjem zboží na sklad","semi","semi","čtečka + příjemka párovaná s PO","dodávka"),
-    P("stock","Vychystání a balení","manual","semi","pick-list z WMS, štítek automaticky","vychystání"),
+    P("stock","Příjem zboží na sklad","semi","semi","čtečka + příjemka v Heliosu párovaná s objednávkou","dodávka"),
+    P("stock","Vychystání a balení","manual","semi","pick-list z Heliosu, štítek automaticky","vychystání"),
     P("stock","Objednání dopravy a tisk štítků","manual","auto","API dopravců (Zásilkovna, PPL, DPD, GLS)","zabaleno"),
-    P("own","Výrobní zakázka z objednávky","manual","auto","OMS → výrobní plán (ERP/MES)","potvrzená objednávka"),
+    P("own","Výrobní zakázka z objednávky","manual","auto","OMS → Helios: výrobní zakázka a plán","potvrzená objednávka"),
     P("own","Konfigurace vlastního výrobku zákazníkem","manual","auto","online konfigurátor s cenou a termínem","zákazník na webu"),
-    P("own","Výpočet termínu dodání z kapacity výroby","manual","auto","plánovací algoritmus","realtime"),
-    P("own","Hlášení dokončení výroby → sklad","manual","auto","čtečka / MES → příjem ve WMS","dokončení zakázky"),
+    P("own","Výpočet termínu dodání z kapacity výroby","manual","auto","plán a kapacita výroby z Heliosu","realtime"),
+    P("own","Hlášení dokončení výroby → sklad","manual","auto","čtečka → hlášení do Heliosu a příjem na sklad","dokončení zakázky"),
     P("drop","Import katalogu a skladu dropship dodavatele","manual","auto","feed / API dodavatele","cron 15 min"),
     P("drop","Předání objednávky dodavateli","manual","auto","API / EDI / automatický e-mail s potvrzením","směrovač"),
     P("drop","Převzetí trackingu od dodavatele","manual","auto","webhook / feed → notifikace zákazníka","odeslání dodavatelem"),
-    P("drop","Kontrola a párování faktur dodavatele","manual","auto","ISDOC / OCR párování s objednávkou","příchozí faktura"),
+    P("drop","Kontrola a párování faktur dodavatele","manual","auto","ISDOC / OCR párování s objednávkou v Heliosu","příchozí faktura"),
     P("drop","Skrytí produktů nedostupných u dodavatele","manual","auto","feed → skrýt / označit „na dotaz“","cron 15 min")
   ];
 }
@@ -886,6 +918,9 @@ function inspect(){
       Z palety vlevo přidáváš bloky, taháním z výstupního portu (vpravo) na vstupní (vlevo) vytváříš vazby. Klávesa <b>Delete</b> maže, kolečko myši zoomuje, tažením prázdné plochy posouváš.</div>`;
     if(dg==="logic"){
       const L=state.diagrams.logic;const man=L.nodes.filter(n=>n.params.auto==="manual"),semi=L.nodes.filter(n=>n.params.auto==="semi");
+      h+=`<div class="isub">Jádro modelu</div>
+        <div class="card"><b style="color:var(--erp)">Helios (ERP)</b> je jediný zdroj pravdy — kmen produktů, zásoby, nákup, výroba, doklady i účetnictví.
+        E-shop je jeho výkladní skříň: čte z něj data a vrací mu objednávky, úhrady a pohyby. Žádná druhá evidence, žádné ruční přepisy.</div>`;
       h+=`<div class="isub">Tři zdroje zboží</div>
         <div class="card"><b style="color:var(--front)">Vlastní výrobky</b> — objednávka automaticky založí výrobní zakázku; termín z kapacity výroby.<br>
         <b style="color:var(--supply)">Zboží na sklad</b> — WMS hlídá minima, nákup objednává sám, expedice přes API dopravců.<br>
@@ -1020,7 +1055,7 @@ function exportProcCSV(){const rows=[["Tok","Krok","Dnes","Cíl","Nástroj","Spo
 
 /* ============ NÁPOVĚDA ============ */
 function renderHelpPage(){
-  document.getElementById("pgHelp").innerHTML=`<div class="pgHead"><div><h2>Jak číst a upravovat model</h2><div class="sub">Model má tři vrstvy: logiku (systémy a toky), obrazovky (co vidí zákazník) a procesy (co dělá člověk).</div></div></div>
+  document.getElementById("pgHelp").innerHTML=`<div class="pgHead"><div><h2>Jak číst a upravovat model</h2><div class="sub">Uprostřed logiky stojí Helios jako ERP jádro. Model má tři pohledy: logiku (systémy a toky), obrazovky (co vidí zákazník) a procesy (co dělá člověk).</div></div></div>
   <div class="helpGrid">
     <div class="helpBox"><h3>🧩 Logika e-shopu</h3>Každý blok je systém nebo proces, každá vazba říká <b>co</b> mezi nimi teče a <b>kdy</b> (spouštěč).
       <ul><li><span style="color:var(--e-data)">modrá</span> = data (API, feed, synchronizace)</li><li><span style="color:var(--e-goods)">oranžová</span> = fyzické zboží</li><li><span style="color:var(--e-money)">zelená</span> = peníze</li><li><span style="color:var(--e-event)">fialová čárkovaná</span> = událost, která něco spustí</li></ul>
@@ -1029,6 +1064,10 @@ function renderHelpPage(){
       Vazby, které z vrstvy vedou ven, se nezahodí: skončí čárkovaným pahýlem v postranním sloupci s názvem protějšku a jeho vrstvou — na první pohled vidíš <b>rozhraní vrstvy</b>, tedy co do ní vstupuje a co z ní odchází.
       <b>Proklik:</b> klik na popisek vazby tě přenese na navazující blok, klik na název u pahýlu i do jeho vrstvy, klik na název oblasti otevře jen tu vrstvu — modelem se tak dá procházet krok po kroku.
       <b>Vše</b> vrátí kompletní plátno. Vrstva bloku se bere podle toho, ve které oblasti leží jeho střed, takže platí i pro bloky, které si přidáš sám.</div>
+    <div class="helpBox"><h3>🏛 Helios = jádro modelu</h3>Uprostřed plátna stojí <b>Helios (ERP)</b> a prochází jím všechno podstatné.
+      <b>Ven z Heliosu</b> jde kmen produktů do PIM, nákupní ceny do cenotvorby, stav zásob a plán výroby do dostupnostního enginu, výrobní zakázka do výroby, výdejka na sklad, faktura do dokladů a data do BI.
+      <b>Do Heliosu</b> se vrací objednávka a její stavy z OMS, úhrada z platební brány, pohyby skladu, hlášení z výroby, vratky a dobropisy i doklady dodavatelů.
+      E-shop tak není druhá evidence — je to výkladní skříň Heliosu. Vrstvu <i>0 · Helios (ERP)</i> si otevři v přepínači vrstev a uvidíš celé jeho rozhraní na jednom místě.</div>
     <div class="helpBox"><h3>🔀 Směrovač = srdce logiky</h3>Jedna objednávka může obsahovat položky ze tří zdrojů. Směrovač ji rozpadne na dílčí zásilky:
       <ol><li><b>vlastní výrobek</b> → výrobní zakázka → po dokončení příjem na sklad → expedice</li><li><b>zboží skladem</b> → pick-list ve WMS → expedice</li><li><b>dropship</b> → objednávka odchází dodavateli (API/EDI) → dodavatel posílá přímo zákazníkovi, tracking se vrací webhookem</li></ol>
       Zákazník vidí termín u každé položky už na webu (dostupnostní engine) a při více zdrojích ví, že přijde více zásilek.</div>
@@ -1038,7 +1077,7 @@ function renderHelpPage(){
     <div class="helpBox"><h3>🖥 Obrazovky</h3>Každá obrazovka má mini-drátěnku z bloků (hlavička, mřížka, formulář…). Zapínáš je v inspektoru. Vazby mezi obrazovkami = kliknutí uživatele.
       Klíčové obrazovky nového e-shopu: detail produktu se <b>3 režimy dostupnosti</b>, konfigurátor vlastního výrobku, jednokrokový checkout, B2B portál s ceníky a hromadným importem, samoobslužná vratka.</div>
     <div class="helpBox"><h3>✏️ Úpravy</h3><ul><li>klik v paletě přidá blok, tažením za hlavičku ho přesuneš</li><li>táhni z pravého portu na levý port jiného bloku = vazba</li><li>klik na blok/vazbu otevře inspektor; <code>Delete</code> maže</li><li>v inspektoru jsou <b>Vstupy</b> a <b>Výstupy</b> proklikávací — klik na název tě přenese na ten blok, ✎ otevře nastavení vazby</li><li>kolečko myši = zoom, tažení prázdné plochy = posun</li><li>vše se ukládá automaticky do prohlížeče; <b>Uložit JSON</b> stáhne soubor, <b>Načíst JSON</b> ho vrátí</li><li><b>Výchozí model</b> obnoví navržený stav, <b>Zkontrolovat model</b> najde nezapojené bloky</li></ul></div>
-    <div class="helpBox"><h3>🧱 Doporučená architektura</h3><ul><li><b>PIM</b> jako jediný zdroj produktových dat (vlastní + dodavatelé)</li><li><b>OMS</b> drží stavy objednávek; ERP dostává data synchronizací, nikdo nic nepřepisuje</li><li><b>Dostupnostní engine</b> spojuje WMS, plán výroby a feedy dropship dodavatelů</li><li><b>API dopravců</b> (Balíkobot apod.) místo ručního tisku štítků</li><li><b>AI agent</b> generuje obsah a odpovídá zákazníkům z dat OMS</li><li>vše event-driven: webhooky místo ručního „zkontroluj a přepiš“</li></ul></div>
+    <div class="helpBox"><h3>🧱 Doporučená architektura</h3><ul><li><b>Helios = ERP jádro</b> a jediný zdroj pravdy: kmen produktů, zásoby, nákup, výroba, doklady, účetnictví</li><li><b>PIM</b> staví nad kmenem z Heliosu marketingový obsah (vlastní + dropship sortiment)</li><li><b>OMS</b> drží stavy objednávek a posílá je do Heliosu datově, nikdo nic nepřepisuje</li><li><b>Dostupnostní engine</b> spojuje zásoby a plán výroby z Heliosu s feedy dropship dodavatelů</li><li><b>API dopravců</b> (Balíkobot apod.) místo ručního tisku štítků</li><li><b>AI agent</b> generuje obsah a odpovídá zákazníkům z dat OMS</li><li>vše event-driven: webhooky místo ručního „zkontroluj a přepiš“</li></ul></div>
   </div>`;
 }
 
@@ -1071,7 +1110,7 @@ async function downloadFile(name,data,mime){
 function saveProj(){downloadFile("eshop_model.json",JSON.stringify({state,pans,uid},null,1),"application/json");}
 function loadProj(f){if(!f)return;const r=new FileReader();r.onload=()=>{try{const d=JSON.parse(r.result);
   if(!d.state||!d.state.diagrams)throw 0;state=d.state;pans=d.pans||pans;uid=d.uid||9999;migrate();sel=null;render();inspect();persist();toast("Model načten.");}catch(e){alert("Chyba souboru.");}};r.readAsText(f);}
-function resetDefault(){if(!confirm("Obnovit výchozí navržený model? Tvoje úpravy se přepíší."))return;buildDefault();sel=null;setPage(currentPage==="help"?"logic":currentPage);persist();toast("Výchozí model obnoven.");}
+function resetDefault(){if(!confirm("Obnovit výchozí navržený model? Tvoje úpravy se přepíší."))return;buildDefault();sel=null;layerSel={logic:null,screens:null};setPage(currentPage==="help"?"logic":currentPage);fitView();persist();toast("Výchozí model obnoven.");}
 function clearCanvas(){if(!confirm("Vyčistit aktuální plátno ("+(dg==="logic"?"logika":"obrazovky")+")?"))return;D().nodes=[];D().edges=[];sel=null;render();inspect();persist();}
 /* ============ SDÍLENÉ MODELY (spolupráce přes server) ============ */
 let cloud=null;      // {id,name,updatedAt} — na který sdílený model je plátno napojené
@@ -1137,9 +1176,12 @@ function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t
   await initCloud();
   let ok=false;
   if(sharedId){ok=await loadShared(sharedId);if(ok){try{history.replaceState(null,"",location.pathname);}catch(e){}}}
-  if(!ok&&!restore())buildDefault();
+  let cerstvy=false;
+  if(!ok&&!restore()){buildDefault();cerstvy=true;}
   if(ok)persistQuiet();
   setPage("logic");renderCloudChip();renderLayers();updateHint();
+  // u čerstvého modelu srovnej pohled na celé plátno (model je široký — vlevo e-shop, uprostřed Helios, vpravo zboží)
+  if(cerstvy)requestAnimationFrame(()=>fitView());
 })();
 </script>
 </body>
