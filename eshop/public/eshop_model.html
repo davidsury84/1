@@ -91,6 +91,12 @@
   .layers .lb .d{width:8px;height:8px;border-radius:2px;flex:none}
   .layers .lb .c{color:var(--tx3);font-weight:500}
   .edge.stub{stroke-dasharray:4 4;opacity:.85}
+  .elbl.go{pointer-events:auto;cursor:pointer}
+  .elbl.go:hover{fill:#fff;text-decoration:underline}
+  .zlbl.go{pointer-events:auto;cursor:pointer}
+  .zlbl.go:hover{fill-opacity:.95}
+  @keyframes nflash{0%{box-shadow:0 0 0 3px var(--acc)}70%{box-shadow:0 0 0 3px var(--acc)}100%{box-shadow:0 2px 0 rgba(0,0,0,.25)}}
+  .node.flash{animation:nflash 1.2s ease-out}
   .stubdot{fill:var(--tx3)}
   .elbl.stub{fill:var(--tx3);font-weight:600}
   .elbl.stub.s{text-anchor:start}
@@ -161,6 +167,10 @@
   .chip.semi.on{background:var(--warn);border-color:var(--warn);color:#0b0d12}
   .linkrow{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--tx2);padding:4px 0;border-bottom:1px dashed var(--line);cursor:pointer}
   .linkrow:hover{color:var(--tx)}
+  .linkrow .go{cursor:pointer;font-weight:600;color:var(--tx)}
+  .linkrow .go:hover{color:var(--acc);text-decoration:underline}
+  .linkrow .ilink{margin-left:auto;padding-left:8px;color:var(--tx3);cursor:pointer}
+  .linkrow .ilink:hover{color:var(--tx)}
   .linkrow .sw{width:14px;border-top:2px solid;flex:none}
   .irow{display:flex;gap:6px;margin-top:12px}
   .irow .btn{flex:1}
@@ -618,6 +628,19 @@ function layerVisible(n,d){const L=curLayer();if(L==null)return true;
   if(typeof drag!=="undefined"&&drag&&drag.id===n.id)return true;   // tažený blok nesmí zmizet pod rukou
   return nodeLayer(n,d)===L;}
 function visNodes(d){d=d||D();return d.nodes.filter(n=>layerVisible(n,d));}
+/* ============ PROKLIK ============
+   Klik na text vazby (i na pahýl do jiné vrstvy) přenese pohled na protější blok:
+   když leží v jiné vrstvě, přepne se vrstva, blok se vycentruje, vybere a zabliká. */
+function centerOn(n){const r=canvas.getBoundingClientRect(),p=pan();
+  p.x=r.width/2-(n.x+W/2)*p.z;p.y=r.height/2-(n.y+nodeH(n)/2)*p.z;applyPan();}
+function flashNode(id){const el=document.querySelector('.node[data-id="'+id+'"]');if(!el)return;
+  el.classList.remove("flash");void el.offsetWidth;el.classList.add("flash");}
+function gotoNode(id){
+  const d=D(),n=d.nodes.find(x=>x.id===id);if(!n)return;
+  const L=curLayer(),nl=nodeLayer(n,d);
+  if(L!=null&&nl!==L){layerSel[dg]=nl;renderLayers();renderLegend();updateHint();}
+  sel={k:"n",id};render();inspect();centerOn(n);flashNode(id);
+}
 function setLayer(i){layerSel[dg]=i;sel=null;render();renderLayers();renderLegend();updateHint();inspect();fitView();}
 function renderLayers(){
   const el=document.getElementById("layers");if(!el)return;
@@ -636,11 +659,11 @@ function updateHint(){
   const el=document.getElementById("hint");if(!el)return;
   const L=curLayer();
   if(L!=null){const z=(D().zones||[])[L];
-    el.textContent=(z?zoneShort(z)+" — ":"Bloky mimo oblasti — ")+"vidíš jen tuhle vrstvu; vazby do ostatních jsou naznačené čárkovaným pahýlem s názvem protějšku";
+    el.textContent=(z?zoneShort(z)+" — ":"Bloky mimo oblasti — ")+"vidíš jen tuhle vrstvu; klik na název u čárkovaného pahýlu tě přenese na navazující blok v jeho vrstvě";
     return;}
   el.textContent=dg==="screens"
-    ?"Klikni na obrazovku v paletě → přidá se · táhni z portu „→ přechod\" na jinou obrazovku → navigace · kolečko = zoom"
-    :"Klikni na blok v paletě → přidá se na plátno · táhni z výstupního portu (vpravo) na vstupní (vlevo) → vazba · kolečko = zoom · Delete maže";
+    ?"Klik na popisek navigace přejde na cílovou obrazovku · klik na název oblasti otevře jen tu vrstvu · táhni z portu „→ přechod\" → navigace"
+    :"Klik na popisek vazby přejde na navazující blok · klik na název oblasti otevře jen tu vrstvu · táhni z výstupního portu (vpravo) na vstupní (vlevo) → vazba";
 }
 
 function render(){
@@ -685,7 +708,7 @@ function renderEdges(){
   let html=`<defs>${Object.keys(EDGE_TYPES).map(t=>`<marker id="arr-${t}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--e-${t})"/></marker>`).join("")}
     <marker id="arr-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#fff"/></marker></defs>`;
   if(showZones)(d.zones||[]).forEach((z,i)=>{if(L!=null&&i!==L)return;
-    html+=`<rect class="zone" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" fill="${z.color}" stroke="${z.color}"></rect><text class="zlbl" x="${z.x+16}" y="${z.y+22}" fill="${z.color}">${esc(z.label)}</text>`;});
+    html+=`<rect class="zone" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" fill="${z.color}" stroke="${z.color}"></rect><text class="zlbl${L==null?" go":""}" ${L==null?`data-layer="${i}"`:""} x="${z.x+16}" y="${z.y+22}" fill="${z.color}">${esc(z.label)}${L==null?"  ›":""}</text>`;});
   const showLbl=pan().z>=0.55;
   const vis={};d.nodes.forEach(n=>{vis[n.id]=layerVisible(n,d);});
   // pahýly končí ve dvou „sloupcích rozhraní" vedle vrstvy, ať popisky neleží na jiných blocích
@@ -706,7 +729,7 @@ function renderEdges(){
       const {d:dd,mid}=pathD(pt.p1,pt.p2);
       html+=`<path class="edgehit" d="${dd}" data-edge="${e.id}"></path><path class="edge t-${t}${isSel?" sel":""}" d="${dd}" data-edge="${e.id}" marker-end="url(#arr-${isSel?"sel":t})"></path>`;
       if(t==="goods"||t==="money")html+=`<path class="flow" d="${dd}"></path>`;
-      if(e.label&&(showLbl||isSel))html+=`<text class="elbl${isSel?" sel":""}" x="${mid.x}" y="${mid.y-6}">${esc(e.label)}</text>`;
+      if(e.label&&(showLbl||isSel))html+=`<text class="elbl go${isSel?" sel":""}" data-goto="${b.id}" x="${mid.x}" y="${mid.y-6}"><title>Přejít na „${esc(b.name)}"</title>${esc(e.label)}</text>`;
       return;
     }
     if(L==null||(!vis[a.id]&&!vis[b.id]))return;   // obě strany mimo vrstvu → vazba se nekreslí
@@ -723,7 +746,7 @@ function renderEdges(){
     html+=`<path class="edgehit" d="${path}" data-edge="${e.id}"></path>`
       +`<path class="edge stub t-${t}${isSel?" sel":""}" d="${path}" data-edge="${e.id}" marker-end="url(#arr-${isSel?"sel":t})"></path>`
       +`<circle class="stubdot" cx="${ven?q.x:q.x}" cy="${q.y}" r="3"></circle>`
-      +`<text class="elbl stub ${ven?"s":"e"}${isSel?" sel":""}" x="${q.x+(ven?9:-9)}" y="${q.y+3.5}">${esc((ven?"→ ":"← ")+lbl)}</text>`;
+      +`<text class="elbl stub go ${ven?"s":"e"}${isSel?" sel":""}" data-goto="${other.id}" x="${q.x+(ven?9:-9)}" y="${q.y+3.5}"><title>Přejít na „${esc(other.name)}"${oz?" ve vrstvě "+esc(zoneShort(oz)):""}</title>${esc((ven?"→ ":"← ")+lbl)}</text>`;
   });
   svg.innerHTML=html;
 }
@@ -764,6 +787,9 @@ function toVP(ev){const r=canvas.getBoundingClientRect();const p=pan();
 function applyPan(){const p=pan();document.getElementById("viewport").style.transform=`translate(${p.x}px,${p.y}px) scale(${p.z})`;}
 function near(el,attr){const x=el&&el.closest?el.closest("["+attr+"]"):null;return x?x.getAttribute(attr):null;}
 canvas.addEventListener("mousedown",ev=>{
+  const gotoId=near(ev.target,"data-goto"), zoneL=near(ev.target,"data-layer");
+  if(gotoId){gotoNode(gotoId);ev.preventDefault();return;}
+  if(zoneL!=null){setLayer(parseInt(zoneL,10));ev.preventDefault();return;}
   const dragId=near(ev.target,"data-drag"), outP=near(ev.target,"data-port-out"), edgeId=near(ev.target,"data-edge");
   if(outP){const [nid,port]=outP.split(":");conn={from:nid,fp:port};
     const tmp=document.createElementNS("http://www.w3.org/2000/svg","path");
@@ -901,17 +927,27 @@ function inspect(){
   // vazby
   const ins=D().edges.filter(e=>e.to===n.id),outs=D().edges.filter(e=>e.from===n.id);
   const nm=id=>{const x=D().nodes.find(z=>z.id===id);return x?x.name:"?";};
+  // Vstupy/výstupy jsou proklik: klik na řádek přejde na protější blok (i do jiné vrstvy),
+  // ikonka vpravo otevře nastavení té vazby.
+  const vrs=id=>{const x=D().nodes.find(z=>z.id===id);if(!x)return "";const z=(D().zones||[])[nodeLayer(x)];return z?` <span style="color:var(--tx3)">· ${esc(zoneShort(z))}</span>`:"";};
+  const radek=(e,id)=>`<div class="linkrow"><span class="sw" style="border-color:var(--e-${e.etype||'data'})"></span>`
+    +`<span class="go" onclick="gotoNode('${id}')" title="Přejít na blok">${esc(nm(id))}</span>`
+    +(e.label?` <span style="color:var(--tx3)">· ${esc(e.label)}</span>`:"")+vrs(id)
+    +`<span class="ilink" onclick="select('e','${e.id}')" title="Upravit vazbu">✎</span></div>`;
   h+=`<div class="isub">Vstupy (${ins.length})</div>`;
-  ins.forEach(e=>{h+=`<div class="linkrow" onclick="select('e','${e.id}')"><span class="sw" style="border-color:var(--e-${e.etype||'data'})"></span>${esc(nm(e.from))}${e.label?` <span style="color:var(--tx3)">· ${esc(e.label)}</span>`:""}</div>`;});
+  ins.forEach(e=>{h+=radek(e,e.from);});
   h+=`<div class="isub">Výstupy (${outs.length})</div>`;
-  outs.forEach(e=>{h+=`<div class="linkrow" onclick="select('e','${e.id}')"><span class="sw" style="border-color:var(--e-${e.etype||'data'})"></span>${esc(nm(e.to))}${e.label?` <span style="color:var(--tx3)">· ${esc(e.label)}</span>`:""}</div>`;});
+  outs.forEach(e=>{h+=radek(e,e.to);});
   h+=`<div class="irow"><button class="btn" onclick="duplicateSel()">Duplikovat</button><button class="btn danger" onclick="delSel()">Smazat blok</button></div>`;
   el.innerHTML=h;
 }
 function edgeForm(){
   const e=D().edges.find(x=>x.id===sel.id);if(!e)return "";
   const nm=id=>{const x=D().nodes.find(z=>z.id===id);return x?x.name:"?";};
-  let h=`<div class="ititle">Vazba</div><div style="font-size:11px;color:var(--tx2);margin-bottom:10px">${esc(nm(e.from))} <span style="color:var(--tx3)">→</span> ${esc(nm(e.to))}</div>`;
+  let h=`<div class="ititle">Vazba</div><div style="font-size:11px;color:var(--tx2);margin-bottom:10px">`
+    +`<span class="go" style="cursor:pointer;font-weight:600;color:var(--tx)" onclick="gotoNode('${e.from}')">${esc(nm(e.from))}</span>`
+    +` <span style="color:var(--tx3)">→</span> `
+    +`<span class="go" style="cursor:pointer;font-weight:600;color:var(--tx)" onclick="gotoNode('${e.to}')">${esc(nm(e.to))}</span></div>`;
   h+=`<label class="f"><span>Popisek (co teče)</span><input class="in" value="${esc(e.label)}" placeholder="např. objednávka, tracking, faktura" oninput="upde('label',this.value)"></label>`;
   h+=`<div class="isub">Typ vazby</div><div class="chips">`;
   Object.keys(EDGE_TYPES).forEach(t=>{if(dg==="logic"&&t==="nav")return;if(dg==="screens"&&t!=="nav"&&t!=="event"&&t!=="data")return;
@@ -991,6 +1027,7 @@ function renderHelpPage(){
       Čti zleva doprava: zákazník → web → košík → OMS → <b>směrovač</b> → tři zdroje zboží → expedice → doručení.</div>
     <div class="helpBox"><h3>🧅 Čtení po vrstvách</h3>Celý model naráz je hustý. Nad plátnem je <b>přepínač vrstev</b> — klikni na oblast (např. <i>4a · Výroba a nákup</i>) a uvidíš jen ji.
       Vazby, které z vrstvy vedou ven, se nezahodí: skončí čárkovaným pahýlem v postranním sloupci s názvem protějšku a jeho vrstvou — na první pohled vidíš <b>rozhraní vrstvy</b>, tedy co do ní vstupuje a co z ní odchází.
+      <b>Proklik:</b> klik na popisek vazby tě přenese na navazující blok, klik na název u pahýlu i do jeho vrstvy, klik na název oblasti otevře jen tu vrstvu — modelem se tak dá procházet krok po kroku.
       <b>Vše</b> vrátí kompletní plátno. Vrstva bloku se bere podle toho, ve které oblasti leží jeho střed, takže platí i pro bloky, které si přidáš sám.</div>
     <div class="helpBox"><h3>🔀 Směrovač = srdce logiky</h3>Jedna objednávka může obsahovat položky ze tří zdrojů. Směrovač ji rozpadne na dílčí zásilky:
       <ol><li><b>vlastní výrobek</b> → výrobní zakázka → po dokončení příjem na sklad → expedice</li><li><b>zboží skladem</b> → pick-list ve WMS → expedice</li><li><b>dropship</b> → objednávka odchází dodavateli (API/EDI) → dodavatel posílá přímo zákazníkovi, tracking se vrací webhookem</li></ol>
@@ -1000,7 +1037,7 @@ function renderHelpPage(){
       Detailní seznam kroků včetně nástroje a spouštěče je v záložce <b>Procesy &amp; automatizace</b>.</div>
     <div class="helpBox"><h3>🖥 Obrazovky</h3>Každá obrazovka má mini-drátěnku z bloků (hlavička, mřížka, formulář…). Zapínáš je v inspektoru. Vazby mezi obrazovkami = kliknutí uživatele.
       Klíčové obrazovky nového e-shopu: detail produktu se <b>3 režimy dostupnosti</b>, konfigurátor vlastního výrobku, jednokrokový checkout, B2B portál s ceníky a hromadným importem, samoobslužná vratka.</div>
-    <div class="helpBox"><h3>✏️ Úpravy</h3><ul><li>klik v paletě přidá blok, tažením za hlavičku ho přesuneš</li><li>táhni z pravého portu na levý port jiného bloku = vazba</li><li>klik na blok/vazbu otevře inspektor; <code>Delete</code> maže</li><li>kolečko myši = zoom, tažení prázdné plochy = posun</li><li>vše se ukládá automaticky do prohlížeče; <b>Uložit JSON</b> stáhne soubor, <b>Načíst JSON</b> ho vrátí</li><li><b>Výchozí model</b> obnoví navržený stav, <b>Zkontrolovat model</b> najde nezapojené bloky</li></ul></div>
+    <div class="helpBox"><h3>✏️ Úpravy</h3><ul><li>klik v paletě přidá blok, tažením za hlavičku ho přesuneš</li><li>táhni z pravého portu na levý port jiného bloku = vazba</li><li>klik na blok/vazbu otevře inspektor; <code>Delete</code> maže</li><li>v inspektoru jsou <b>Vstupy</b> a <b>Výstupy</b> proklikávací — klik na název tě přenese na ten blok, ✎ otevře nastavení vazby</li><li>kolečko myši = zoom, tažení prázdné plochy = posun</li><li>vše se ukládá automaticky do prohlížeče; <b>Uložit JSON</b> stáhne soubor, <b>Načíst JSON</b> ho vrátí</li><li><b>Výchozí model</b> obnoví navržený stav, <b>Zkontrolovat model</b> najde nezapojené bloky</li></ul></div>
     <div class="helpBox"><h3>🧱 Doporučená architektura</h3><ul><li><b>PIM</b> jako jediný zdroj produktových dat (vlastní + dodavatelé)</li><li><b>OMS</b> drží stavy objednávek; ERP dostává data synchronizací, nikdo nic nepřepisuje</li><li><b>Dostupnostní engine</b> spojuje WMS, plán výroby a feedy dropship dodavatelů</li><li><b>API dopravců</b> (Balíkobot apod.) místo ručního tisku štítků</li><li><b>AI agent</b> generuje obsah a odpovídá zákazníkům z dat OMS</li><li>vše event-driven: webhooky místo ručního „zkontroluj a přepiš“</li></ul></div>
   </div>`;
 }

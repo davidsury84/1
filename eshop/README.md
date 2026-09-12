@@ -28,6 +28,8 @@ Cíl: člověk řeší jen výjimky.
 
 - **přepínač vrstev** nad plátnem (Vše · 1 Datová vrstva · 2 Cesta zákazníka · …) ukáže jen jednu oblast;
   vazby ven z vrstvy zůstanou jako čárkované pahýly s názvem protějšku, takže je vidět rozhraní vrstvy
+- **proklik**: klik na popisek vazby přejde na navazující blok, klik na název u pahýlu i do jeho vrstvy,
+  klik na název oblasti otevře jen tu vrstvu; Vstupy/Výstupy v inspektoru jsou taky proklikávací
 - klik v paletě přidá blok, tažením za hlavičku ho přesuneš
 - táhni z pravého portu na levý port jiného bloku = vazba; klik na vazbu → popisek, typ, spouštěč
 - klik na blok → inspektor (název, systém, integrace, automatizace, poznámka)
