@@ -45,6 +45,8 @@ Cíl: člověk řeší jen výjimky.
 - klik v paletě přidá blok, tažením za hlavičku ho přesuneš
 - táhni z pravého portu na levý port jiného bloku = vazba; klik na vazbu → popisek, typ, spouštěč
 - klik na blok → inspektor (název, systém, integrace, automatizace, poznámka)
+- bloku jdou přidat **vlastní vstupy a výstupy** (inspektor → Vlastní vstupy a výstupy); porty z typu bloku zůstávají,
+  vlastní jsou čárkované a smazání portu odstraní i vazby na něm
 - `Delete` maže, kolečko = zoom, tažení prázdné plochy = posun, **Zarovnat pohled** = vše na obrazovku
 - vše se ukládá automaticky do prohlížeče (`localStorage`); **☁ Sdílené modely** ukládá na server pro kolegy; **Uložit JSON** / **Načíst JSON** pro přenos souborem; **Výchozí model** obnoví návrh
 - **Zkontrolovat model** najde nezapojené bloky, ruční kroky a vazby bez popisku

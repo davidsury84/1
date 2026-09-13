@@ -182,6 +182,15 @@
   .linkrow .go{cursor:pointer;font-weight:600;color:var(--tx)}
   .linkrow .go:hover{color:var(--acc);text-decoration:underline}
   .linkrow .ilink{margin-left:auto;padding-left:8px;color:var(--tx3);cursor:pointer}
+  .portrow{display:flex;align-items:center;gap:7px;margin-bottom:5px}
+  .portrow .in.sm{flex:1;padding:5px 8px;font-size:11.5px}
+  .portrow .ilink{color:var(--tx3);cursor:pointer;padding:0 2px}
+  .portrow .ilink:hover{color:var(--bad)}
+  .portrow .pdot{width:8px;height:8px;border-radius:50%;flex:none;border:1.5px solid var(--acc)}
+  .portrow .pdot.out{background:var(--acc)}
+  .porthelp{font-size:10.5px;color:var(--tx3);line-height:1.5;margin:-4px 0 8px}
+  .port.own{border-style:dashed}
+  .plabel.own{color:var(--acc)}
   .linkrow .ilink:hover{color:var(--tx)}
   .linkrow .sw{width:14px;border-top:2px solid;flex:none}
   .irow{display:flex;gap:6px;margin-top:12px}
@@ -420,7 +429,11 @@ let pans={logic:{x:30,y:20,z:0.8},screens:{x:30,y:30,z:0.85}};
 function D(){return state.diagrams[dg];}
 function pan(){return pans[dg];}
 
-function nodeDefaults(type){const T=TYPES[type];return {system:"",auto:T.auto,owner:"",api:T.cat==="screen"?"":"REST API",sla:"",note:"",url:"",blocks:[]};}
+function nodeDefaults(type){const T=TYPES[type];return {system:"",auto:T.auto,owner:"",api:T.cat==="screen"?"":"REST API",sla:"",note:"",url:"",blocks:[],extraIns:[],extraOuts:[]};}
+/* Porty bloku = ty z typu + vlastní, které si k bloku kdokoli přidá (params.extraIns / extraOuts) */
+function nodeIns(n){return (TYPES[n.type].ins||[]).concat(n.params.extraIns||[]);}
+function nodeOuts(n){return (TYPES[n.type].outs||[]).concat(n.params.extraOuts||[]);}
+function typeInCount(n){return (TYPES[n.type].ins||[]).length;}
 function newNode(type,x,y){const T=TYPES[type];return {id:"n"+(uid++),type,name:T.label,x,y,params:nodeDefaults(type)};}
 function newEdge(from,fp,to,tp,extra){return Object.assign({id:"e"+(uid++),from,fp,to,tp,label:"",etype:dg==="screens"?"nav":"data",trigger:TRIGGERS[0],payload:"",note:""},extra||{});}
 function emptyState(){return {ver:1,meta:{name:"Nový e-shop ELKOPLAST",author:""},diagrams:{logic:{nodes:[],edges:[],zones:[]},screens:{nodes:[],edges:[],zones:[]}},process:[]};}
@@ -648,7 +661,7 @@ function buildDefault(){
 /* ============ GEOMETRIE UZLŮ ============ */
 const W=220,HDH=30,Y0=6,PR=24,SUBH=19;
 const BLOCK_H={hdr:8,hero:18,grid:18,filters:14,gallery:22,avail:8,cta:9,list:16,form:14,summary:14,steps:8,table:16,tabs:8,config:20,map:16,footer:6};
-function nodeRows(n){const T=TYPES[n.type];return Math.max(T.ins.length,T.outs.length,1);}
+function nodeRows(n){return Math.max(nodeIns(n).length,nodeOuts(n).length,1);}
 function hasSub(n){return true;}
 function wireH(n){if(!TYPES[n.type].wire)return 0;const b=n.params.blocks||[];if(!b.length)return 0;
   return 8+12+2+b.reduce((s,k)=>s+(BLOCK_H[k]||10),0)+(b.length-1)*3;}
@@ -768,10 +781,12 @@ function render(){
     html+=`<div class="bd">`;
     const rows=nodeRows(n);
     for(let r=0;r<rows;r++){
-      const inL=T.ins[r], out=T.outs[r];
+      const IN=nodeIns(n), OUT=nodeOuts(n);
+      const inL=IN[r], out=OUT[r];
+      const vlIn=r>=typeInCount(n), vlOut=r>=(TYPES[n.type].outs||[]).length;
       html+=`<div class="prow">`;
-      if(inL!==undefined)html+=`<span class="port pin" data-port-in="${n.id}:in${r}" title="${esc(inL)}"></span><span class="plabel">${esc(inL)}</span>`;
-      if(out)html+=`<span class="plabel o">${esc(out[1])}</span><span class="port pout" data-port-out="${n.id}:${out[0]}" title="${esc(out[1])}"></span>`;
+      if(inL!==undefined)html+=`<span class="port pin${vlIn?" own":""}" data-port-in="${n.id}:in${r}" title="${esc(inL)}${vlIn?" (vlastní vstup)":""}"></span><span class="plabel${vlIn?" own":""}">${esc(inL)}</span>`;
+      if(out)html+=`<span class="plabel o${vlOut?" own":""}">${esc(out[1])}</span><span class="port pout${vlOut?" own":""}" data-port-out="${n.id}:${out[0]}" title="${esc(out[1])}${vlOut?" (vlastní výstup)":""}"></span>`;
       html+=`</div>`;
     }
     html+=`</div>`;
@@ -784,7 +799,7 @@ function render(){
 function edgePts(e){
   const d=D();const a=d.nodes.find(n=>n.id===e.from),b=d.nodes.find(n=>n.id===e.to);
   if(!a||!b)return null;
-  const j=TYPES[a.type].outs.findIndex(o=>o[0]===e.fp);
+  const j=nodeOuts(a).findIndex(o=>o[0]===e.fp);
   let i=0;if(e.tp&&e.tp.startsWith("in")&&e.tp.length>2)i=parseInt(e.tp.slice(2))||0;
   return {p1:outPort(a,j<0?0:j),p2:inPort(b,i)};
 }
@@ -824,7 +839,7 @@ function renderEdges(){
     if(L==null||(!vis[a.id]&&!vis[b.id]))return;   // obě strany mimo vrstvu → vazba se nekreslí
     // vazba ven z vrstvy: krátký pahýl s názvem protějšku a jeho vrstvou
     const ven=vis[a.id];
-    const j=TYPES[a.type].outs.findIndex(o=>o[0]===e.fp);
+    const j=nodeOuts(a).findIndex(o=>o[0]===e.fp);
     let i2=0;if(e.tp&&e.tp.startsWith("in")&&e.tp.length>2)i2=parseInt(e.tp.slice(2))||0;
     const p=ven?outPort(a,j<0?0:j):inPort(b,i2);
     const q={x:ven?colR:colL, y:volnaY(ven?"R":"L",p.y)};
@@ -895,7 +910,7 @@ window.addEventListener("mousemove",ev=>{
   if(drag){const m=toVP(ev);const n=D().nodes.find(x=>x.id===drag.id);
     n.x=Math.round(m.x-drag.ox);n.y=Math.round(m.y-drag.oy);render();}
   else if(conn){const m=toVP(ev);const a=D().nodes.find(n=>n.id===conn.from);
-    const j=TYPES[a.type].outs.findIndex(o=>o[0]===conn.fp);const p1=outPort(a,j<0?0:j);
+    const j=nodeOuts(a).findIndex(o=>o[0]===conn.fp);const p1=outPort(a,j<0?0:j);
     const tmp=document.getElementById("tmpedge");if(tmp)tmp.setAttribute("d",pathD(p1,m).d);}
   else if(panning){pan().x=ev.clientX-panning.x;pan().y=ev.clientY-panning.y;applyPan();}
 });
@@ -1021,6 +1036,13 @@ function inspect(){
   // vazby
   const ins=D().edges.filter(e=>e.to===n.id),outs=D().edges.filter(e=>e.from===n.id);
   const nm=id=>{const x=D().nodes.find(z=>z.id===id);return x?x.name:"?";};
+  // vlastní porty bloku
+  const eIn=n.params.extraIns||[], eOut=n.params.extraOuts||[];
+  h+=`<div class="isub">Vlastní vstupy a výstupy</div>`;
+  h+=`<div class="porthelp">Porty z typu bloku (${typeInCount(n)} vstupů, ${(TYPES[n.type].outs||[]).length} výstupů) zůstávají; tady si přidáš vlastní, pokud ti nestačí.</div>`;
+  eIn.forEach((t,i)=>{h+=`<div class="portrow"><span class="pdot in"></span><input class="in sm" value="${esc(t)}" placeholder="název vstupu" oninput="renamePort('in',${i},this.value)"><span class="ilink" onclick="delPort('in',${i})" title="Smazat vstup i vazby na něj">✕</span></div>`;});
+  eOut.forEach((o2,i)=>{h+=`<div class="portrow"><span class="pdot out"></span><input class="in sm" value="${esc(o2[1])}" placeholder="název výstupu" oninput="renamePort('out',${i},this.value)"><span class="ilink" onclick="delPort('out',${i})" title="Smazat výstup i vazby z něj">✕</span></div>`;});
+  h+=`<div class="irow" style="margin-top:6px"><button class="btn sm" onclick="addPort('in')">+ vstup</button><button class="btn sm" onclick="addPort('out')">+ výstup</button></div>`;
   // Vstupy/výstupy jsou proklik: klik na řádek přejde na protější blok (i do jiné vrstvy),
   // ikonka vpravo otevře nastavení té vazby.
   const vrs=id=>{const x=D().nodes.find(z=>z.id===id);if(!x)return "";const z=(D().zones||[])[nodeLayer(x)];return z?` <span style="color:var(--tx3)">· ${esc(zoneShort(z))}</span>`:"";};
@@ -1056,6 +1078,26 @@ function edgeForm(){
 function upd(k,v){const n=D().nodes.find(x=>x.id===sel.id);if(!n)return;n[k]=v;render();persist();}
 function updp(k,v){const n=D().nodes.find(x=>x.id===sel.id);if(!n)return;n.params[k]=v;render();if(k==="auto")inspect();persist();}
 function upde(k,v){const e=D().edges.find(x=>x.id===sel.id);if(!e)return;e[k]=v;render();if(k==="etype")inspect();persist();}
+/* ---- vlastní porty bloku ---- */
+function addPort(kind){const n=D().nodes.find(x=>x.id===(sel||{}).id);if(!n)return;
+  if(kind==="in"){(n.params.extraIns=n.params.extraIns||[]).push("vlastní vstup");}
+  else{(n.params.extraOuts=n.params.extraOuts||[]).push(["x"+(uid++),"vlastní výstup"]);}
+  render();inspect();persist();}
+function renamePort(kind,i,v){const n=D().nodes.find(x=>x.id===(sel||{}).id);if(!n)return;
+  if(kind==="in"){(n.params.extraIns||[])[i]=v;}else{const o=(n.params.extraOuts||[])[i];if(o)o[1]=v;}
+  render();persist();}
+function delPort(kind,i){const n=D().nodes.find(x=>x.id===(sel||{}).id);if(!n)return;const d=D();
+  if(kind==="in"){
+    const idx=typeInCount(n)+i;                       // pořadí portu v celém bloku
+    d.edges=d.edges.filter(e=>!(e.to===n.id&&e.tp==="in"+idx));
+    d.edges.forEach(e=>{if(e.to===n.id&&e.tp&&e.tp.indexOf("in")===0){const k=parseInt(e.tp.slice(2))||0;if(k>idx)e.tp="in"+(k-1);}});
+    (n.params.extraIns||[]).splice(i,1);
+  }else{
+    const port=(n.params.extraOuts||[])[i];if(!port)return;
+    d.edges=d.edges.filter(e=>!(e.from===n.id&&e.fp===port[0]));   // výstupy jsou pod klíčem, indexy se neposouvají
+    n.params.extraOuts.splice(i,1);
+  }
+  render();inspect();persist();}
 function toggleBlock(k){const n=D().nodes.find(x=>x.id===sel.id);if(!n)return;const b=n.params.blocks||(n.params.blocks=[]);
   const i=b.indexOf(k);if(i<0)b.push(k);else b.splice(i,1);render();inspect();persist();}
 
@@ -1139,7 +1181,7 @@ function renderHelpPage(){
       Detailní seznam kroků včetně nástroje a spouštěče je v záložce <b>Procesy &amp; automatizace</b>.</div>
     <div class="helpBox"><h3>🖥 Obrazovky</h3>Každá obrazovka má mini-drátěnku z bloků (hlavička, mřížka, formulář…). Zapínáš je v inspektoru. Vazby mezi obrazovkami = kliknutí uživatele.
       Klíčové obrazovky nového e-shopu: detail produktu se <b>3 režimy dostupnosti</b>, konfigurátor vlastního výrobku, jednokrokový checkout, B2B portál s ceníky a hromadným importem, samoobslužná vratka.</div>
-    <div class="helpBox"><h3>✏️ Úpravy</h3><ul><li>klik v paletě přidá blok, tažením za hlavičku ho přesuneš</li><li>táhni z pravého portu na levý port jiného bloku = vazba</li><li>klik na blok/vazbu otevře inspektor; <code>Delete</code> maže</li><li>v inspektoru jsou <b>Vstupy</b> a <b>Výstupy</b> proklikávací — klik na název tě přenese na ten blok, ✎ otevře nastavení vazby</li><li>kolečko myši = zoom, tažení prázdné plochy = posun</li><li><b>⛶ Celá plocha</b> schová boční panely; paletu vrátí tlačítko <b>＋ Bloky</b>, inspektor se vysune sám, když něco vybereš</li><li>vše se ukládá automaticky do prohlížeče; <b>Uložit JSON</b> stáhne soubor, <b>Načíst JSON</b> ho vrátí</li><li><b>Výchozí model</b> obnoví navržený stav, <b>Zkontrolovat model</b> najde nezapojené bloky</li></ul></div>
+    <div class="helpBox"><h3>✏️ Úpravy</h3><ul><li>klik v paletě přidá blok, tažením za hlavičku ho přesuneš</li><li>táhni z pravého portu na levý port jiného bloku = vazba</li><li>klik na blok/vazbu otevře inspektor; <code>Delete</code> maže</li><li>každý blok si můžeš doplnit o <b>vlastní vstupy a výstupy</b> (inspektor → Vlastní vstupy a výstupy) — jsou čárkované a zelené, smazání portu odstraní i vazby, které na něm visely</li><li>v inspektoru jsou <b>Vstupy</b> a <b>Výstupy</b> proklikávací — klik na název tě přenese na ten blok, ✎ otevře nastavení vazby</li><li>kolečko myši = zoom, tažení prázdné plochy = posun</li><li><b>⛶ Celá plocha</b> schová boční panely; paletu vrátí tlačítko <b>＋ Bloky</b>, inspektor se vysune sám, když něco vybereš</li><li>vše se ukládá automaticky do prohlížeče; <b>Uložit JSON</b> stáhne soubor, <b>Načíst JSON</b> ho vrátí</li><li><b>Výchozí model</b> obnoví navržený stav, <b>Zkontrolovat model</b> najde nezapojené bloky</li></ul></div>
     <div class="helpBox"><h3>🧱 Doporučená architektura</h3><ul><li><b>Helios = ERP jádro</b> a jediný zdroj pravdy: kmen produktů, zásoby, nákup, výroba, doklady, účetnictví</li><li><b>PIM</b> staví nad kmenem z Heliosu marketingový obsah (vlastní + dropship sortiment)</li><li><b>OMS</b> drží stavy objednávek a posílá je do Heliosu datově, nikdo nic nepřepisuje</li><li><b>Dostupnostní engine</b> spojuje zásoby a plán výroby z Heliosu s feedy dropship dodavatelů</li><li><b>API dopravců</b> (Balíkobot apod.) místo ručního tisku štítků</li><li><b>AI agent</b> generuje obsah a odpovídá zákazníkům z dat OMS</li><li>vše event-driven: webhooky místo ručního „zkontroluj a přepiš“</li></ul></div>
   </div>`;
 }
@@ -1148,8 +1190,8 @@ function renderHelpPage(){
 function autoLayoutCheck(){
   const d=D();const issues=[];
   d.nodes.forEach(n=>{const T=TYPES[n.type];const ins=d.edges.filter(e=>e.to===n.id).length,outs=d.edges.filter(e=>e.from===n.id).length;
-    if(T.ins.length&&!ins&&T.auto!==null&&n.type!=="customer")issues.push(`„${n.name}“ nemá žádný vstup`);
-    if(T.outs.length&&!outs&&T.auto!==null)issues.push(`„${n.name}“ nemá žádný výstup`);
+    if(nodeIns(n).length&&!ins&&T.auto!==null&&n.type!=="customer")issues.push(`„${n.name}“ nemá žádný vstup`);
+    if(nodeOuts(n).length&&!outs&&T.auto!==null)issues.push(`„${n.name}“ nemá žádný výstup`);
     if(n.params.auto==="manual")issues.push(`„${n.name}“ je ruční krok — navrhni automatizaci`);});
   if(dg==="logic")d.edges.forEach(e=>{if(!e.label)issues.push("vazba bez popisku ("+e.id+")");});
   if(!issues.length){toast("✔ Model je kompletní: každý blok je zapojený, žádný ruční krok.");return;}
