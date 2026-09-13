@@ -701,15 +701,20 @@ function layerVisible(n,d){const L=curLayer();if(L==null)return true;
 function visNodes(d){d=d||D();return d.nodes.filter(n=>layerVisible(n,d));}
 /* ============ CELÁ PLOCHA ============
    Boční panely se schovají; paleta se vysune tlačítkem, inspektor sám, když je něco vybrané. */
+// Pozor: volba se ukládá JEN když ji uživatel sám přepne. Kdyby ji zapisovalo i načtení,
+// každý, kdo appku otevřel s dřívějším výchozím nastavením, by měl volbu „natvrdo" uloženou
+// a změna výchozího stavu by se u něj nikdy neprojevila (přesně to se 12. 9. stalo).
+const PANELS_KEY="em_panels2";
 let panelsOff=true;
 function applyPanels(){
   document.body.classList.toggle("panels-off",panelsOff);
   const b=document.getElementById("btnPanels");
   if(b){b.textContent=panelsOff?"▤ Panely":"⛶ Celá plocha";b.title=panelsOff?"Vrátit boční panely":"Skrýt boční panely a využít celou plochu";}
-  try{localStorage.setItem("em_panels",panelsOff?"1":"0")}catch(e){}
   requestAnimationFrame(()=>renderEdges());
 }
-function togglePanels(){panelsOff=!panelsOff;if(!panelsOff)document.body.classList.remove("pal-open");applyPanels();}
+function togglePanels(){panelsOff=!panelsOff;if(!panelsOff)document.body.classList.remove("pal-open");
+  try{localStorage.setItem(PANELS_KEY,panelsOff?"1":"0")}catch(e){}
+  applyPanels();}
 function togglePal(){document.body.classList.toggle("pal-open");}
 
 /* ============ PROKLIK ============
@@ -1238,7 +1243,8 @@ function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t
   if(!ok&&!restore()){buildDefault();cerstvy=true;}
   if(ok)persistQuiet();
   // výchozí stav = panely schované (model se čte přes celou plochu); kdo si je vrátí, tomu to zůstane
-  try{panelsOff=localStorage.getItem("em_panels")!=="0";}catch(e){panelsOff=true;}
+  try{const v=localStorage.getItem(PANELS_KEY);panelsOff=(v===null)?true:v!=="0";}catch(e){panelsOff=true;}
+  try{localStorage.removeItem("em_panels");}catch(e){}   // úklid po staré, omylem zapisované volbě
   applyPanels();
   setPage("logic");renderCloudChip();renderLayers();updateHint();
   // u čerstvého modelu srovnej pohled na celé plátno (model je široký — vlevo e-shop, uprostřed Helios, vpravo zboží)
