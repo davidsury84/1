@@ -12,8 +12,48 @@
     --front:#3a86c8; --core:#39d3b4; --supply:#f0a93b; --fulfil:#7bd06b; --integ:#b48ee8; --logic:#d97757; --screen:#9aa7b8;
     --erp:#f2c14e;   /* Helios — ERP jádro modelu */
     --e-data:#3a86c8; --e-goods:#f0a93b; --e-money:#7bd06b; --e-event:#b48ee8; --e-nav:#9aa7b8;
+    --sel:#fff; --flow:#fff; --dot:#222b35;   /* výběr, tok a rastr plátna — ve světlém režimu se obrací */
     --mono:ui-monospace,"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
     --sans:ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif;
+  }
+  /* ---- světlý režim: čitelný na projektoru i na papíře ---- */
+  body.light{
+    --bg:#ffffff; --bg2:#ffffff; --bg3:#f3f6f9; --line:#d6dde6; --line2:#a9b5c3;
+    --tx:#10161d; --tx2:#41505f; --tx3:#697683;
+    --acc:#0d8f79; --acc2:#0a6d5c; --warn:#a9700f; --bad:#b5362a; --ok:#2b7a2f;
+    --front:#1c6ba6; --core:#0d8f79; --supply:#a9700f; --fulfil:#2b7a2f; --integ:#6f46b5; --logic:#a84d34; --screen:#55606c;
+    --erp:#9a7208;
+    --e-data:#1c6ba6; --e-goods:#a9700f; --e-money:#2b7a2f; --e-event:#6f46b5; --e-nav:#55606c;
+    --sel:#10161d; --flow:#10161d; --dot:#dde4ec;
+  }
+  body.light .node{box-shadow:0 1px 2px rgba(16,22,29,.12)}
+  body.light .node .hd{background:var(--bg3)}
+  body.light .zone{fill-opacity:.06;stroke-opacity:.55}
+  body.light .legend,body.light .hint,body.light .layers .lb,body.light .fab{box-shadow:0 1px 3px rgba(16,22,29,.10)}
+  body.light header,body.light .tabs{background:var(--bg3)}      /* ať je lišta odlišená od bílého plátna */
+  body.light .btn{background:#fff}
+  body.light .tab.on{background:#fff}
+
+  /* ---- tisk: zůstane jen obsah stránky ---- */
+  .printhead{display:none;margin:0 0 10px;font:600 13.5px var(--sans);color:#000}
+  .printhead small{display:block;font-weight:400;color:#444;font-size:10.5px;margin-top:3px;letter-spacing:.2px}
+  @media print{
+    @page{size:A4 landscape;margin:10mm}
+    html,body{height:auto;overflow:visible;background:#fff}
+    .app{height:auto;display:block;overflow:visible}
+    header,nav.tabs,aside.palette,aside.insp,.legend,.hint,.layers,.fab,.cloudChip{display:none!important}
+    .pageWrap{position:static;overflow:visible;flex:none}
+    .page{position:static;display:none}
+    .page.on{display:block}
+    #pgCanvas.on{display:block}
+    #pgProcess.on,#pgHelp.on,#pgIface.on{display:block;padding:0;overflow:visible}
+    .canvas{position:relative;overflow:hidden;background:#fff;border:1px solid #ccc;border-radius:6px}
+    .printhead{display:block!important}
+    table.proc input,table.proc select{border:0;padding:2px 0;background:transparent}
+    .edge{stroke-width:1.6}
+    .ifctrl,.pgHead .btn{display:none!important}
+    table.ifc{font-size:9.5px}
+    table.ifc tr{break-inside:avoid}
   }
   *{box-sizing:border-box}
   html,body{height:100%;margin:0}
@@ -77,7 +117,7 @@
 
   /* canvas */
   .canvas{position:relative;overflow:hidden;background:
-    radial-gradient(circle at 1px 1px,#222b35 1px,transparent 0) 0 0/22px 22px,var(--bg)}
+    radial-gradient(circle at 1px 1px,var(--dot) 1px,transparent 0) 0 0/22px 22px,var(--bg)}
   .viewport{position:absolute;left:0;top:0;transform-origin:0 0}
   svg.edges{position:absolute;left:0;top:0;width:6000px;height:4000px;overflow:visible;pointer-events:none}
   .edge{fill:none;stroke:var(--line2);stroke-width:2;pointer-events:stroke;cursor:pointer}
@@ -85,12 +125,12 @@
   .edge.t-event{stroke:var(--e-event);stroke-dasharray:6 5}.edge.t-nav{stroke:var(--e-nav)}
   .edge.sel{stroke:#fff;stroke-width:3}
   .edgehit{fill:none;stroke:transparent;stroke-width:14;pointer-events:stroke;cursor:pointer}
-  .flow{fill:none;stroke:#fff;stroke-linecap:round;stroke-dasharray:2 14;opacity:.55;pointer-events:none;animation:flowmove 1.6s linear infinite}
+  .flow{fill:none;stroke:var(--flow);stroke-linecap:round;stroke-dasharray:2 14;opacity:.55;pointer-events:none;animation:flowmove 1.6s linear infinite}
   @keyframes flowmove{to{stroke-dashoffset:-16}}
   .zone{fill-opacity:.045;stroke-opacity:.35;stroke-width:1.5;stroke-dasharray:8 6;rx:14}
   .zlbl{font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;fill-opacity:.55;pointer-events:none}
   .elbl{font-family:var(--sans);font-size:10px;fill:var(--tx2);paint-order:stroke;stroke:var(--bg);stroke-width:4px;stroke-linejoin:round;pointer-events:none;text-anchor:middle}
-  .elbl.sel{fill:#fff;font-weight:600}
+  .elbl.sel{fill:var(--sel);font-weight:600}
   .hint{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);max-width:calc(100% - 240px);overflow:hidden;text-overflow:ellipsis;font-size:11px;color:var(--tx3);z-index:5;
     background:var(--bg2);border:1px solid var(--line);padding:6px 12px;border-radius:20px;pointer-events:none;white-space:nowrap}
   /* přepínač vrstev — model jde číst po jedné oblasti, ne všechno naráz */
@@ -104,7 +144,7 @@
   .layers .lb .c{color:var(--tx3);font-weight:500}
   .edge.stub{stroke-dasharray:4 4;opacity:.85}
   .elbl.go{pointer-events:auto;cursor:pointer}
-  .elbl.go:hover{fill:#fff;text-decoration:underline}
+  .elbl.go:hover{fill:var(--sel);text-decoration:underline}
   .zlbl.go{pointer-events:auto;cursor:pointer}
   .zlbl.go:hover{fill-opacity:.95}
   @keyframes nflash{0%{box-shadow:0 0 0 3px var(--acc)}70%{box-shadow:0 0 0 3px var(--acc)}100%{box-shadow:0 2px 0 rgba(0,0,0,.25)}}
@@ -122,7 +162,7 @@
 
   .node{position:absolute;width:220px;background:var(--bg2);border:1px solid var(--line2);
     border-radius:10px;box-shadow:0 2px 0 rgba(0,0,0,.25);user-select:none}
-  .node.sel{border-color:#fff;box-shadow:0 0 0 1px #fff}
+  .node.sel{border-color:var(--sel);box-shadow:0 0 0 1px var(--sel)}
   .node.a-manual{border-color:var(--bad);box-shadow:0 0 0 1px var(--bad),0 0 18px rgba(232,96,76,.35)}
   .node.a-semi{box-shadow:0 0 0 1px var(--warn)}
   .node.sink{opacity:.9}
@@ -199,6 +239,24 @@
   .card b{color:var(--tx)}
 
   /* procesy */
+  table.ifc{width:100%;border-collapse:collapse;font-size:11.5px}
+  table.ifc th{font-size:10px;color:var(--tx3);text-transform:uppercase;letter-spacing:.9px;text-align:left;
+    padding:7px 8px;border-bottom:1px solid var(--line2);font-weight:600;position:sticky;top:0;background:var(--bg)}
+  table.ifc td{padding:6px 8px;border-bottom:1px solid var(--line);vertical-align:top}
+  table.ifc tr:hover td{background:var(--bg2)}
+  table.ifc .sys{font-weight:600;color:var(--tx);cursor:pointer}
+  table.ifc .sys:hover{color:var(--acc);text-decoration:underline}
+  table.ifc .vr{display:block;color:var(--tx3);font-size:10px;margin-top:1px}
+  table.ifc .port{position:static;width:auto;height:auto;border:0;background:none;color:var(--tx3);font-size:10px;display:block;margin-top:1px;cursor:default}
+  table.ifc .chybi{color:var(--bad);font-style:italic}
+  table.ifc .tp{white-space:nowrap;font-weight:600}
+  .ifctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+  .ifctrl select,.ifctrl input{background:var(--bg2);border:1px solid var(--line);color:var(--tx);border-radius:7px;
+    padding:7px 9px;font-size:12px;font-family:var(--sans)}
+  .ifctrl input{min-width:220px}
+  .ifsum{display:flex;gap:26px;flex-wrap:wrap;margin-bottom:16px}
+  .ifsum b{display:block;font-size:20px}
+  .ifsum span{font-size:10.5px;color:var(--tx3);text-transform:uppercase;letter-spacing:.9px}
   .pgHead{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:12px}
   .pgHead h2{margin:0;font-size:18px;font-weight:600}
   .pgHead .sub{color:var(--tx2);font-size:12px;margin-top:3px}
@@ -261,6 +319,7 @@
 </style>
 </head>
 <body>
+<style id="pagestyle"></style>
 <div class="app">
   <header>
     <div class="brand"><b>Drátový model e-shopu</b><span>ELKOPLAST · shop.elkoplast.cz · logika &amp; vazby</span></div>
@@ -270,6 +329,8 @@
       <button class="btn" onclick="document.getElementById('loadf').click()">Načíst JSON</button>
       <button class="btn" onclick="openShared()">☁ Sdílené modely</button>
       <button class="btn" onclick="fitView()" title="Zarovnat pohled na celý model">⤢ Zarovnat</button>
+      <button class="btn" id="btnLight" onclick="toggleLight()" title="Světlý režim — čitelný na projektoru a na papíře">☀ Světlá</button>
+      <button class="btn" id="btnTisk" onclick="tisk()" title="Vytisknout aktuální pohled (plátno se zmenší na stránku)">🖨 Tisk</button><select id="papir" class="btn" title="Velikost papíru pro tisk plátna" style="padding:7px 8px"><option value="auto">papír: auto</option><option value="A4">A4 na šířku</option><option value="A3">A3 na šířku</option><option value="A2">A2 (plakát)</option></select>
       <button class="btn" id="btnPanels" onclick="togglePanels()" title="Skrýt boční panely a využít celou plochu (paleta i inspektor se vysunou, když je potřebuješ)">⛶ Celá plocha</button>
       <button class="btn" onclick="resetDefault()">Výchozí model</button>
       <button class="btn danger" onclick="clearCanvas()">Vyčistit</button>
@@ -282,6 +343,7 @@
     <button class="tab on" data-page="logic" onclick="setPage('logic')">🧩 Logika e-shopu <span class="pill" id="tabLogicCnt">0</span></button>
     <button class="tab" data-page="screens" onclick="setPage('screens')">🖥 Obrazovky <span class="pill" id="tabScreenCnt">0</span></button>
     <button class="tab" data-page="process" onclick="setPage('process')">⚙ Procesy &amp; automatizace <span class="pill" id="tabProcCnt">0</span></button>
+    <button class="tab" data-page="iface" onclick="setPage('iface')">🔌 Rozhraní <span class="pill" id="tabIfaceCnt">0</span></button>
     <button class="tab" data-page="help" onclick="setPage('help')">❔ Jak číst model</button>
     <div class="yield">
       <div class="kpi"><b id="kpiNodes">0</b><span>bloků</span></div>
@@ -293,6 +355,7 @@
 
   <div class="pageWrap">
     <div class="page on" id="pgCanvas">
+      <div class="printhead" id="printhead"></div>
       <aside class="palette" id="palette"></aside>
       <div class="canvas" id="canvas">
         <button class="fab" onclick="togglePal()" title="Paleta bloků">＋ Bloky</button>
@@ -307,6 +370,7 @@
       <aside class="insp" id="insp"></aside>
     </div>
     <div class="page" id="pgProcess"></div>
+    <div class="page" id="pgIface"></div>
     <div class="page" id="pgHelp"></div>
   </div>
 </div>
@@ -490,27 +554,27 @@ function buildDefaultLogic(){
   const returns=N("returns",I,830,"Vratky & reklamace",{note:"samoobslužný formulář; refundace do limitu automaticky, dobropis v Heliosu"});
 
   // ---- z Heliosu ven: data, zakázky, doklady ----
-  E(helios,"master",pim,0,"kmen produktů a skladové karty","data",{trigger:"realtime / webhook"});
+  E(helios,"master",pim,0,"kmen produktů a skladové karty","data",{trigger:"realtime / webhook",payload:"JSON: kód, název, MJ, EAN, skupina, hmotnost, rozměry"});
   E(helios,"master",ai,0,"karty produktů k popisu","data",{trigger:"při změně stavu"});
-  E(helios,"cost",pricing,0,"nákupní ceny a marže");
-  E(helios,"stock",stock,0,"stav zásob","data",{trigger:"realtime / webhook"});
+  E(helios,"cost",pricing,0,"nákupní ceny a marže",undefined,{payload:"JSON: kód, nákupní cena, měna, platnost"});
+  E(helios,"stock",stock,0,"stav zásob","data",{trigger:"realtime / webhook",payload:"JSON: kód, volné množství, rezervace, sklad"});
   E(helios,"plan",stock,1,"plán a kapacita výroby");
   E(helios,"bi",analytics,0,"prodeje, marže, zásoby","data",{trigger:"cron (pravidelně)"});
-  E(helios,"doc",invoicing,0,"faktura a doklady");
-  E(helios,"mo",production,0,"výrobní zakázka");
-  E(helios,"pick",wms,2,"výdejka / pick-list");
+  E(helios,"doc",invoicing,0,"faktura a doklady",undefined,{payload:"ISDOC + PDF"});
+  E(helios,"mo",production,0,"výrobní zakázka",undefined,{payload:"výrobní zakázka Helios: položka, množství, termín, konfigurace"});
+  E(helios,"pick",wms,2,"výdejka / pick-list",undefined,{payload:"výdejka Helios: položky, množství, lokace, číslo zásilky"});
   E(helios,"stock",purchasing,0,"pokles pod minimum","event",{trigger:"při změně stavu"});
 
   // ---- do Heliosu: objednávky, peníze, pohyby, doklady ----
-  E(oms,"docs",helios,0,"objednávka a stavy","data",{trigger:"realtime / webhook"});
+  E(oms,"docs",helios,0,"objednávka a stavy","data",{trigger:"realtime / webhook",payload:"JSON objednávky: hlavička, položky, doprava, platba, zákazník"});
   E(router,"own",helios,0,"položky z vlastní výroby");
   E(router,"stock",helios,0,"položky ze skladu");
-  E(pay,"paid",helios,1,"úhrada","money",{trigger:"realtime / webhook"});
-  E(wms,"level",helios,2,"příjem a výdej ze skladu","data",{trigger:"při změně stavu"});
+  E(pay,"paid",helios,1,"úhrada","money",{trigger:"realtime / webhook",payload:"webhook brány: VS, částka, měna, čas, stav"});
+  E(wms,"level",helios,2,"příjem a výdej ze skladu","data",{trigger:"při změně stavu",payload:"pohyb skladu: doklad, položka, množství, lokace"});
   E(production,"plan",helios,3,"hlášení z výroby a kapacita");
   E(returns,"restock",helios,4,"vratka a dobropis");
-  E(supplier,"feed",helios,5,"ceník a dodací listy");
-  E(dropship,"track",helios,5,"faktura dodavatele","data",{trigger:"realtime / webhook"});
+  E(supplier,"feed",helios,5,"ceník a dodací listy",undefined,{payload:"ISDOC / XLSX ceník, dodací list k objednávce"});
+  E(dropship,"track",helios,5,"faktura dodavatele","data",{trigger:"realtime / webhook",payload:"ISDOC faktura + číslo zásilky dopravce"});
 
   // ---- e-shop a Helios do intranetu, intranet do SMI ----
   E(oms,"docs",intranet,0,"objednávky a prodeje e-shopu","data",{trigger:"cron (pravidelně)"});
@@ -518,22 +582,22 @@ function buildDefaultLogic(){
   E(b2c,"claim",intranet,2,"reklamace z veřejného formuláře","event");
   E(intranet,"sso",smi,0,"přihlášení zaměstnance (SSO)","event");
   E(intranet,"task",returns,0,"reklamace k vyřízení","event");
-  E(helios,"sync",smi,1,"výdejky a faktury k vyhodnocení","data",{trigger:"cron (pravidelně)"});
+  E(helios,"sync",smi,1,"výdejky a faktury k vyhodnocení","data",{trigger:"cron (pravidelně)",payload:"XLSX export z Heliosu (řady výdejek a faktur)"});
   E(pim,"feeds",smi,2,"feed Shop.CZ — ceny a sortiment","data",{trigger:"cron (pravidelně)"});
   E(analytics,"insight",smi,3,"prodeje e-shop vs. obchod");
   E(smi,"minmax",purchasing,0,"min/max a návrh objednávky");
   E(smi,"price",pricing,1,"návrh přecenění a marží");
-  E(smi,"req",purchasing,1,"požadavek nákupu (kolik kusů objednat)","event");
+  E(smi,"req",purchasing,1,"požadavek nákupu (kolik kusů objednat)","event",{payload:"JSON: položka, množství, termín, odůvodnění"});
 
   // ---- data pro web ----
   E(ai,"out",pim,2,"popisy, překlady, SEO texty","data",{trigger:"při změně stavu"});
   E(pim,"catalog",web,1,"katalog produktů");
   E(pim,"catalog",search,0,"index");
-  E(pim,"feeds",channel,0,"XML feedy (Heureka, Zboží, Google)","data",{trigger:"cron (pravidelně)"});
+  E(pim,"feeds",channel,0,"XML feedy (Heureka, Zboží, Google)","data",{trigger:"cron (pravidelně)",payload:"XML: Heureka, Zboží.cz, Google Merchant"});
   E(pricing,"price",web,2,"prodejní ceny + B2B ceníky");
   E(stock,"avail",web,3,"dostupnost + termín dodání");
   E(search,"results",web,1,"výsledky / doporučení");
-  E(dropship,"feed",stock,2,"sklad dodavatele","data",{trigger:"cron (pravidelně)"});
+  E(dropship,"feed",stock,2,"sklad dodavatele","data",{trigger:"cron (pravidelně)",payload:"XML/CSV feed dodavatele: kód, dostupnost, lhůta"});
   E(dropship,"feed",pim,1,"produkty dropship","data",{trigger:"cron (pravidelně)"});
 
   // ---- cesta zákazníka ----
@@ -548,18 +612,18 @@ function buildDefaultLogic(){
   E(pay,"paid",oms,1,"zaplaceno","event",{trigger:"realtime / webhook"});
   E(oms,"confirmed",router,0,"potvrzená objednávka");
   E(oms,"status",notify,0,"změna stavu","event",{trigger:"při změně stavu"});
-  E(invoicing,"invoice",notify,0,"faktura PDF");
+  E(invoicing,"invoice",notify,0,"faktura PDF",undefined,{payload:"PDF v příloze e-mailu"});
   E(notify,"msg",b2c,0,"e-mail / SMS","event");
   E(notify,"msg",b2b,0,"e-mail + faktura","event");
 
   // ---- fyzický tok zboží ----
-  E(router,"drop",dropship,0,"objednávka dodavateli (API/EDI)","data",{trigger:"realtime / webhook"});
+  E(router,"drop",dropship,0,"objednávka dodavateli (API/EDI)","data",{trigger:"realtime / webhook",payload:"REST/EDI objednávka: položky, adresa zákazníka, doprava"});
   E(production,"done",wms,0,"hotový výrobek → příjem","goods");
   E(wms,"pick",shipping,0,"vychystaný balík","goods");
   E(dropship,"ship",delivery,1,"zásilka přímo zákazníkovi","goods");
   E(dropship,"track",shipping,1,"tracking dodavatele","data",{trigger:"realtime / webhook"});
   E(shipping,"parcel",delivery,0,"zásilka","goods");
-  E(shipping,"track",oms,2,"stav doručení","event",{trigger:"realtime / webhook"});
+  E(shipping,"track",oms,2,"stav doručení","event",{trigger:"realtime / webhook",payload:"webhook dopravce: číslo zásilky, stav, čas"});
 
   // ---- nákup na sklad ----
   E(analytics,"forecast",purchasing,1,"prognóza prodejů","data",{trigger:"cron (pravidelně)"});
@@ -712,6 +776,68 @@ function layerVisible(n,d){const L=curLayer();if(L==null)return true;
   if(typeof drag!=="undefined"&&drag&&drag.id===n.id)return true;   // tažený blok nesmí zmizet pod rukou
   return nodeLayer(n,d)===L;}
 function visNodes(d){d=d||D();return d.nodes.filter(n=>layerVisible(n,d));}
+/* ============ SVĚTLÝ REŽIM A TISK ============ */
+let svetlo=false;
+function setLight(on,ulozit){
+  svetlo=!!on;document.body.classList.toggle("light",svetlo);
+  const b=document.getElementById("btnLight");
+  if(b){b.textContent=svetlo?"🌙 Tmavá":"☀ Světlá";b.title=svetlo?"Zpět na tmavý režim":"Světlý režim — čitelný na projektoru a na papíře";}
+  if(ulozit!==false){try{localStorage.setItem("em_light",svetlo?"1":"0")}catch(e){}}
+  renderEdges();
+}
+function toggleLight(){setLight(!svetlo,true);}
+
+/* Tisk: plátno se dočasně zmenší tak, aby se to, co je vidět (i jen zvolená vrstva),
+   vešlo na jednu stránku A4 na šířku. Po tisku se pohled vrátí přesně tam, kde byl. */
+function tisk(){
+  if(currentPage!=="logic"&&currentPage!=="screens"){window.print();return;}
+  const d=D(),ns=visNodes(d);
+  if(!ns.length){toast("Na plátně není co tisknout.");return;}
+  const byloSvetle=svetlo;
+  if(!byloSvetle)setLight(true,false);
+  const L=curLayer();
+  const zs=showZones?(d.zones||[]).filter((z,i)=>L==null||i===L):[];
+  const okraj=(L==null?0:300)+24;
+  const minX=Math.min(...ns.map(n=>n.x),...zs.map(z=>z.x))-okraj;
+  const minY=Math.min(...ns.map(n=>n.y),...zs.map(z=>z.y))-24;
+  const maxX=Math.max(...ns.map(n=>n.x+W),...zs.map(z=>z.x+z.w))+okraj;
+  const maxY=Math.max(...ns.map(n=>n.y+nodeH(n)),...zs.map(z=>z.y+z.h))+24;
+  // Plocha na šířku při 96 dpi minus 10mm okraje a hlavička. Model je široký, takže A4 často nestačí.
+  const PAPIRY={A4:{w:1040,h:655,jm:"A4"},A3:{w:1505,h:995,jm:"A3"},A2:{w:2160,h:1445,jm:"A2"}};
+  const volba=(document.getElementById("papir")||{}).value||"auto";
+  const mer=pp=>Math.min(pp.w/(maxX-minX),pp.h/(maxY-minY),1.5);
+  let papir,k;
+  if(volba!=="auto"){papir=PAPIRY[volba];k=mer(papir);}
+  else{papir=PAPIRY.A4;k=mer(papir);                       // auto: zvětšuj papír, dokud je písmo moc malé
+    if(k<0.55){papir=PAPIRY.A3;k=mer(papir);}
+    if(k<0.55){papir=PAPIRY.A2;k=mer(papir);}}
+  document.getElementById("pagestyle").textContent="@page{size:"+papir.jm+" landscape;margin:10mm}";
+  const pct=Math.round(k*100);
+  if(papir.jm!=="A4")toast("Tisknu na "+papir.jm+" na šířku ("+pct+" %) — v dialogu vyber stejný papír, nebo Uložit jako PDF.");
+  else if(k<0.62)toast("Měřítko tisku "+pct+" % — pro větší písmo zvol jednu vrstvu nebo větší papír.");
+  const cv=document.getElementById("canvas"),vp=document.getElementById("viewport");
+  const puvodni={cv:cv.getAttribute("style")||"",vp:vp.getAttribute("style")||""};
+  cv.style.width=Math.ceil((maxX-minX)*k)+"px";
+  cv.style.height=Math.ceil((maxY-minY)*k)+"px";
+  vp.style.transform=`translate(${-minX*k}px,${-minY*k}px) scale(${k})`;
+  const z0=pan().z;pan().z=Math.max(k,0.56);renderEdges();pan().z=z0;   // popisky vazeb ať jsou na papíře vidět vždy
+  const zl=(d.zones||[])[L];
+  document.getElementById("printhead").innerHTML=
+    esc(state.meta.name||"Drátový model e-shopu")+" — "+(currentPage==="logic"?"Logika e-shopu":"Obrazovky")+
+    (L!=null?" · "+esc(zoneShort(zl)||"bloky mimo oblasti"):"")+
+    "<small>ELKOPLAST CZ · "+new Date().toLocaleDateString("cs-CZ")+
+    (state.meta.author?" · "+esc(state.meta.author):"")+" · "+ns.length+" bloků</small>";
+  const uklid=()=>{
+    cv.setAttribute("style",puvodni.cv);vp.setAttribute("style",puvodni.vp);
+    applyPan();renderEdges();
+    if(!byloSvetle)setLight(false,false);
+    document.getElementById("pagestyle").textContent="";
+    window.removeEventListener("afterprint",uklid);
+  };
+  window.addEventListener("afterprint",uklid);
+  setTimeout(()=>window.print(),80);
+}
+
 /* ============ CELÁ PLOCHA ============
    Boční panely se schovají; paleta se vysune tlačítkem, inspektor sám, když je něco vybrané. */
 // Pozor: volba se ukládá JEN když ji uživatel sám přepne. Kdyby ji zapisovalo i načtení,
@@ -810,7 +936,7 @@ function renderEdges(){
   const svg=document.getElementById("edges");
   const d=D(), L=curLayer();
   let html=`<defs>${Object.keys(EDGE_TYPES).map(t=>`<marker id="arr-${t}" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--e-${t})"/></marker>`).join("")}
-    <marker id="arr-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="#fff"/></marker></defs>`;
+    <marker id="arr-sel" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0 L10 5 L0 10 z" fill="var(--sel)"/></marker></defs>`;
   if(showZones)(d.zones||[]).forEach((z,i)=>{if(L!=null&&i!==L)return;
     html+=`<rect class="zone" x="${z.x}" y="${z.y}" width="${z.w}" height="${z.h}" fill="${z.color}" stroke="${z.color}"></rect><text class="zlbl${L==null?" go":""}" ${L==null?`data-layer="${i}"`:""} x="${z.x+16}" y="${z.y+22}" fill="${z.color}">${esc(z.label)}${L==null?"  ›":""}</text>`;});
   const showLbl=pan().z>=0.55;
@@ -865,6 +991,7 @@ function updateKPI(){
   document.getElementById("tabLogicCnt").textContent=L.nodes.length;
   document.getElementById("tabScreenCnt").textContent=state.diagrams.screens.nodes.length;
   document.getElementById("tabProcCnt").textContent=state.process.length;
+  const ti=document.getElementById("tabIfaceCnt");if(ti)ti.textContent=L.edges.length;
 }
 function renderLegend(){
   const el=document.getElementById("legend");
@@ -1106,11 +1233,106 @@ function setPage(pg){
   currentPage=pg;
   document.querySelectorAll('.tab').forEach(b=>b.classList.toggle('on',b.dataset.page===pg));
   const canvasPg=pg==="logic"||pg==="screens";
+  const pgEl=document.getElementById("pgIface");if(pgEl)pgEl.classList.toggle("on",pg==="iface");
   document.getElementById("pgCanvas").classList.toggle("on",canvasPg);
   document.getElementById("pgProcess").classList.toggle("on",pg==="process");
   document.getElementById("pgHelp").classList.toggle("on",pg==="help");
   if(canvasPg){if(dg!==pg){dg=pg;sel=null;}buildPalette();renderLegend();render();inspect();renderLayers();updateHint();}
-  else {renderLayers();if(pg==="process")renderProcessPage();else if(pg==="help")renderHelpPage();}
+  else {renderLayers();if(pg==="process")renderProcessPage();else if(pg==="iface")renderIfacePage();else if(pg==="help")renderHelpPage();}
+}
+
+/* ============ ROZHRANÍ — katalog vazeb odvozený z modelu ============
+   Třetí pohled na stejná data: co všechno se musí naprogramovat a propojit.
+   Nic se tu nezadává zvlášť — každý řádek je jedna vazba z plátna. */
+let ifaceF={typ:"all",vrstva:"all",q:""};
+function ifaceRadky(){
+  const d=state.diagrams.logic;
+  const uzel=id=>d.nodes.find(x=>x.id===id);
+  const vrstvaJm=n=>{if(!n)return "—";const z=(d.zones||[])[nodeLayer(n,d)];return z?zoneShort(z):"mimo oblasti";};
+  return d.edges.map(e=>{
+    const a=uzel(e.from),b=uzel(e.to);
+    const vyst=a?((nodeOuts(a).find(o=>o[0]===e.fp)||[])[1]||e.fp):e.fp;
+    const i=parseInt(String(e.tp||"in0").slice(2))||0;
+    const vst=b?(nodeIns(b)[i]||e.tp):e.tp;
+    return {id:e.id,from:e.from,to:e.to,
+      odkud:a?a.name:"?",odkudV:vrstvaJm(a),odkudSys:(a&&a.params.system)||"",vystup:vyst,
+      kam:b?b.name:"?",kamV:vrstvaJm(b),kamSys:(b&&b.params.system)||"",vstup:vst,
+      co:e.label||"",typ:e.etype||"data",spoustec:e.trigger||"",format:e.payload||""};
+  });
+}
+function ifaceFiltr(r){
+  if(ifaceF.typ!=="all"&&r.typ!==ifaceF.typ)return false;
+  if(ifaceF.vrstva!=="all"&&r.odkudV!==ifaceF.vrstva&&r.kamV!==ifaceF.vrstva)return false;
+  const q=(ifaceF.q||"").trim().toLowerCase();
+  if(q&&[r.odkud,r.kam,r.co,r.format,r.spoustec,r.odkudSys,r.kamSys].join(" ").toLowerCase().indexOf(q)<0)return false;
+  return true;
+}
+function ifaceSet(k,v){ifaceF[k]=v;renderIfacePage();}
+function renderIfacePage(){
+  const d=state.diagrams.logic;
+  const vse=ifaceRadky(), rows=vse.filter(ifaceFiltr);
+  const vrstvy=[];(d.zones||[]).forEach(z=>vrstvy.push(zoneShort(z)));
+  const helios=(d.nodes.find(n=>n.type==="erp")||{}).id;
+  const presHelios=vse.filter(r=>r.from===helios||r.to===helios).length;
+  const bezSpoustece=vse.filter(r=>!r.spoustec).length, bezFormatu=vse.filter(r=>!r.format).length;
+  const poctyTypu={};vse.forEach(r=>poctyTypu[r.typ]=(poctyTypu[r.typ]||0)+1);
+  let h=`<div class="pgHead"><div><h2>Rozhraní — co se musí propojit</h2>
+    <div class="sub">Každý řádek je jedna vazba z plátna: odkud, kam, co teče, čím se spouští a v jakém formátu. Seznam se generuje z modelu, nikde se nezadává zvlášť.</div></div>
+    <div class="inline-actions"><button class="btn" onclick="exportIface()">⬇ Export (CSV)</button><button class="btn" onclick="window.print()">🖨 Tisk</button></div></div>`;
+  h+=`<div class="ifsum">
+    <div><b>${vse.length}</b><span>vazeb celkem</span></div>
+    <div><b>${presHelios}</b><span>přes Helios</span></div>
+    <div><b style="color:${bezFormatu?"var(--warn)":"var(--acc)"}">${bezFormatu}</b><span>bez formátu</span></div>
+    <div><b style="color:${bezSpoustece?"var(--warn)":"var(--acc)"}">${bezSpoustece}</b><span>bez spouštěče</span></div>
+    ${Object.keys(poctyTypu).map(t=>`<div><b style="color:var(--e-${t})">${poctyTypu[t]}</b><span>${esc(EDGE_TYPES[t]||t)}</span></div>`).join("")}
+  </div>`;
+  h+=`<div class="ifctrl">
+    <select onchange="ifaceSet('typ',this.value)"><option value="all">Všechny typy</option>${Object.keys(EDGE_TYPES).map(t=>`<option value="${t}" ${ifaceF.typ===t?"selected":""}>${esc(EDGE_TYPES[t])}</option>`).join("")}</select>
+    <select onchange="ifaceSet('vrstva',this.value)"><option value="all">Všechny vrstvy</option>${vrstvy.map(v=>`<option value="${esc(v)}" ${ifaceF.vrstva===v?"selected":""}>${esc(v)}</option>`).join("")}</select>
+    <input placeholder="Hledat systém, obsah, formát…" value="${esc(ifaceF.q)}" oninput="ifaceF.q=this.value;clearTimeout(window._ifT);window._ifT=setTimeout(renderIfacePage,200)">
+    <span class="muted" style="font-size:11.5px;color:var(--tx3)">zobrazeno ${rows.length} z ${vse.length}</span>
+  </div>`;
+  h+=`<div style="overflow:auto"><table class="ifc"><thead><tr>
+    <th style="width:30px">#</th><th>Odkud</th><th>Co teče</th><th>Typ</th><th>Spouštěč</th><th>Formát / payload</th><th>Kam</th><th style="width:70px"></th>
+  </tr></thead><tbody>`;
+  rows.forEach((r,i)=>{
+    h+=`<tr>
+      <td class="num" style="color:var(--tx3);font-family:var(--mono);font-size:10px">${i+1}</td>
+      <td><span class="sys" onclick="gotoFromIface('${r.from}')">${esc(r.odkud)}</span><span class="vr">${esc(r.odkudV)}${r.odkudSys?" · "+esc(r.odkudSys):""}</span><span class="port">výstup: ${esc(r.vystup)}</span></td>
+      <td>${r.co?esc(r.co):'<span class="chybi">bez popisku</span>'}</td>
+      <td class="tp" style="color:var(--e-${r.typ})">${esc(EDGE_TYPES[r.typ]||r.typ)}</td>
+      <td>${r.spoustec?esc(r.spoustec):'<span class="chybi">nedoplněn</span>'}</td>
+      <td>${r.format?esc(r.format):'<span class="chybi">nedoplněn</span>'}</td>
+      <td><span class="sys" onclick="gotoFromIface('${r.to}')">${esc(r.kam)}</span><span class="vr">${esc(r.kamV)}${r.kamSys?" · "+esc(r.kamSys):""}</span><span class="port">vstup: ${esc(r.vstup)}</span></td>
+      <td style="text-align:right"><button class="btn ghost sm" onclick="gotoEdge('${r.id}')" title="Ukázat vazbu na plátně">na plátně</button></td>
+    </tr>`;
+  });
+  if(!rows.length)h+=`<tr><td colspan="8" style="padding:18px;color:var(--tx3)">Filtru nic neodpovídá.</td></tr>`;
+  h+=`</tbody></table></div>`;
+  h+=`<p style="font-size:11.5px;color:var(--tx3);max-width:900px;margin:16px 0 0;line-height:1.6">
+    Červené „nedoplněn" není chyba modelu, ale <strong>otevřená otázka k zadání</strong> — u vazby zatím není řečeno, čím se spouští nebo co přesně si systémy posílají.
+    Doplníš je kliknutím na „na plátně" a vyplněním v inspektoru vazby. Tenhle seznam je podklad pro dodavatele e-shopu: co všechno musí umět napojit.</p>`;
+  document.getElementById("pgIface").innerHTML=h;
+}
+function gotoFromIface(id){setPage("logic");setTimeout(()=>gotoNode(id),40);}
+function gotoEdge(id){
+  setPage("logic");
+  setTimeout(()=>{
+    const d=D(),e=d.edges.find(x=>x.id===id);if(!e)return;
+    const a=d.nodes.find(n=>n.id===e.from),b=d.nodes.find(n=>n.id===e.to);
+    if(curLayer()!=null&&!(layerVisible(a,d)&&layerVisible(b,d))){layerSel[dg]=null;renderLayers();renderLegend();updateHint();}
+    sel={k:"e",id};render();inspect();
+    if(a&&b){const r=canvas.getBoundingClientRect(),p=pan();
+      const cx=((a.x+W/2)+(b.x+W/2))/2, cy=((a.y+nodeH(a)/2)+(b.y+nodeH(b)/2))/2;
+      p.x=r.width/2-cx*p.z;p.y=r.height/2-cy*p.z;applyPan();renderEdges();}
+  },40);
+}
+function exportIface(){
+  const rows=ifaceRadky().filter(ifaceFiltr);
+  const hl=["Odkud","Vrstva odkud","Systém odkud","Výstup","Co teče","Typ","Spouštěč","Formát / payload","Kam","Vrstva kam","Systém kam","Vstup"];
+  const csv=[hl].concat(rows.map(r=>[r.odkud,r.odkudV,r.odkudSys,r.vystup,r.co,EDGE_TYPES[r.typ]||r.typ,r.spoustec,r.format,r.kam,r.kamV,r.kamSys,r.vstup]))
+    .map(a=>a.map(x=>'"'+String(x==null?"":x).replace(/"/g,'""')+'"').join(";")).join("\r\n");
+  downloadFile("eshop-rozhrani.csv","﻿"+csv,"text/csv;charset=utf-8");
 }
 
 /* ============ PROCESY & AUTOMATIZACE ============ */
@@ -1156,7 +1378,7 @@ function exportProcCSV(){const rows=[["Tok","Krok","Dnes","Cíl","Nástroj","Spo
 
 /* ============ NÁPOVĚDA ============ */
 function renderHelpPage(){
-  document.getElementById("pgHelp").innerHTML=`<div class="pgHead"><div><h2>Jak číst a upravovat model</h2><div class="sub">Uprostřed logiky stojí Helios jako ERP jádro. Model má tři pohledy: logiku (systémy a toky), obrazovky (co vidí zákazník) a procesy (co dělá člověk).</div></div></div>
+  document.getElementById("pgHelp").innerHTML=`<div class="pgHead"><div><h2>Jak číst a upravovat model</h2><div class="sub">Uprostřed logiky stojí Helios jako ERP jádro. Model má čtyři pohledy: logiku (systémy a toky), obrazovky (co vidí zákazník), procesy (co dělá člověk) a rozhraní (co se musí propojit).</div></div></div>
   <div class="helpGrid">
     <div class="helpBox"><h3>🧩 Logika e-shopu</h3>Každý blok je systém nebo proces, každá vazba říká <b>co</b> mezi nimi teče a <b>kdy</b> (spouštěč).
       <ul><li><span style="color:var(--e-data)">modrá</span> = data (API, feed, synchronizace)</li><li><span style="color:var(--e-goods)">oranžová</span> = fyzické zboží</li><li><span style="color:var(--e-money)">zelená</span> = peníze</li><li><span style="color:var(--e-event)">fialová čárkovaná</span> = událost, která něco spustí</li></ul>
@@ -1179,6 +1401,12 @@ function renderHelpPage(){
     <div class="helpBox"><h3>✋ Odbourání lidské práce</h3>Bloky mají tři stavy: <span class="abadge auto">⚙ AUTO</span> <span class="abadge semi">◐ POLO</span> <span class="abadge manual">✋ RUČNĚ</span>.
       Ruční bloky svítí červeně a počítají se v hlavičce. Cílem je, aby člověk řešil jen výjimky (reklamace mimo limit, eskalace od AI asistenta).
       Detailní seznam kroků včetně nástroje a spouštěče je v záložce <b>Procesy &amp; automatizace</b>.</div>
+    <div class="helpBox"><h3>🔌 Rozhraní</h3>Čtvrtá záložka je stejný model postavený „po vazbách": tabulka <b>odkud → co teče → čím se spouští → v jakém formátu → kam</b>, u každé strany i vrstva a systém.
+      Nic se do ní nezadává, generuje se z plátna. Slouží jako <b>podklad pro dodavatele</b> — seznam všeho, co musí umět napojit — a rovnou ukazuje, kde ještě není doplněný spouštěč nebo formát.
+      Filtrovat jde podle typu vazby i vrstvy, „na plátně" skočí na vazbu do modelu, a celé se to dá vyexportovat do CSV.</div>
+    <div class="helpBox"><h3>☀ Světlá verze a tisk</h3>Tlačítko <b>☀ Světlá</b> přepne celý model do světlého režimu — čitelnějšího na projektoru a na papíře.
+      <b>🖨 Tisk</b> zmenší to, co je právě vidět (i jen jednu vrstvu), tak aby se to vešlo na jednu stránku A4 na šířku, přidá hlavičku s názvem modelu a datem a po tisku vrátí pohled přesně tam, kde byl.
+      Popisky vazeb se na papíře vytisknou vždy, i když jsi model odzoomoval.</div>
     <div class="helpBox"><h3>🖥 Obrazovky</h3>Každá obrazovka má mini-drátěnku z bloků (hlavička, mřížka, formulář…). Zapínáš je v inspektoru. Vazby mezi obrazovkami = kliknutí uživatele.
       Klíčové obrazovky nového e-shopu: detail produktu se <b>3 režimy dostupnosti</b>, konfigurátor vlastního výrobku, jednokrokový checkout, B2B portál s ceníky a hromadným importem, samoobslužná vratka.</div>
     <div class="helpBox"><h3>✏️ Úpravy</h3><ul><li>klik v paletě přidá blok, tažením za hlavičku ho přesuneš</li><li>táhni z pravého portu na levý port jiného bloku = vazba</li><li>klik na blok/vazbu otevře inspektor; <code>Delete</code> maže</li><li>každý blok si můžeš doplnit o <b>vlastní vstupy a výstupy</b> (inspektor → Vlastní vstupy a výstupy) — jsou čárkované a zelené, smazání portu odstraní i vazby, které na něm visely</li><li>v inspektoru jsou <b>Vstupy</b> a <b>Výstupy</b> proklikávací — klik na název tě přenese na ten blok, ✎ otevře nastavení vazby</li><li>kolečko myši = zoom, tažení prázdné plochy = posun</li><li><b>⛶ Celá plocha</b> schová boční panely; paletu vrátí tlačítko <b>＋ Bloky</b>, inspektor se vysune sám, když něco vybereš</li><li>vše se ukládá automaticky do prohlížeče; <b>Uložit JSON</b> stáhne soubor, <b>Načíst JSON</b> ho vrátí</li><li><b>Výchozí model</b> obnoví navržený stav, <b>Zkontrolovat model</b> najde nezapojené bloky</li></ul></div>
@@ -1285,6 +1513,7 @@ function toast(msg){const t=document.getElementById("toast");t.textContent=msg;t
   if(!ok&&!restore()){buildDefault();cerstvy=true;}
   if(ok)persistQuiet();
   // výchozí stav = panely schované (model se čte přes celou plochu); kdo si je vrátí, tomu to zůstane
+  try{setLight(localStorage.getItem("em_light")==="1",false);}catch(e){}
   try{const v=localStorage.getItem(PANELS_KEY);panelsOff=(v===null)?true:v!=="0";}catch(e){panelsOff=true;}
   try{localStorage.removeItem("em_panels");}catch(e){}   // úklid po staré, omylem zapisované volbě
   applyPanels();

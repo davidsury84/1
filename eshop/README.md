@@ -13,6 +13,7 @@ Aplikace: `public/eshop_model.html` — otevři přímo v prohlížeči, nic se 
 | 🧩 **Logika e-shopu** | systémy a procesy jako bloky, vazby = co mezi nimi teče (data / zboží / peníze / událost) a kdy (spouštěč). Uprostřed stojí **Helios (ERP)** jako jádro, kolem něj vrstvy: data pro web → cesta zákazníka → doklady/servis → tři zdroje zboží |
 | 🖥 **Obrazovky** | stránky e-shopu s mini-drátěnkou rozvržení, vazby = akce uživatele (navigace) |
 | ⚙ **Procesy & automatizace** | tabulka kroků: kdo je dělá dnes (ručně / polo / auto), cílový stav, nástroj, spouštěč; % automatizace dnes vs. cíl |
+| 🔌 **Rozhraní** | katalog vazeb odvozený z plátna: odkud → co teče → spouštěč → formát → kam, s vrstvou a systémem na obou stranách; filtry, skok na plátno, export CSV, podklad pro dodavatele |
 | ❔ **Jak číst model** | legenda a doporučená architektura |
 
 **Helios je jádro modelu.** Ven z něj jde kmen produktů do PIM, nákupní ceny do cenotvorby, stav zásob a plán
@@ -38,6 +39,8 @@ Cíl: člověk řeší jen výjimky.
 
 - **přepínač vrstev** nad plátnem (Vše · 1 Datová vrstva · 2 Cesta zákazníka · …) ukáže jen jednu oblast;
   vazby ven z vrstvy zůstanou jako čárkované pahýly s názvem protějšku, takže je vidět rozhraní vrstvy
+- **☀ Světlá** přepne model do světlého režimu, **🖨 Tisk** zmenší právě zobrazený pohled (i jen jednu vrstvu)
+  na jednu stránku A4 na šířku, přidá hlavičku s názvem a datem a po tisku vrátí pohled zpět
 - **⛶ Celá plocha** schová boční panely a model využije celou šířku; paletu vrátí tlačítko ＋ Bloky,
   inspektor se vysune sám, když něco vybereš (volba se pamatuje v prohlížeči)
 - **proklik**: klik na popisek vazby přejde na navazující blok, klik na název u pahýlu i do jeho vrstvy,
